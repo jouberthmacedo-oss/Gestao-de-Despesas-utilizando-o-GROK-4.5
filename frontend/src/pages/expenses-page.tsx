@@ -24,6 +24,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { EXPENSE_CATEGORY_LABELS } from '@/data/labels';
+import {
+  getExpenseOccurrenceDate,
+  getExpenseOccurrenceKey,
+  getMonthKey,
+  getSettlementStatus,
+  getTodayDateString,
+} from '@/lib/finance-calculations';
 import { formatCurrency } from '@/lib/format';
 import { selectMonthlyExpenses, useFinanceStore } from '@/stores/finance-store';
 import type { ExpenseCategory, RecurringExpense } from '@/types/finance';
@@ -39,7 +46,10 @@ export function ExpensesPage() {
   const expenses = useFinanceStore((state) => state.expenses);
   const cards = useFinanceStore((state) => state.profile.cards);
   const removeExpense = useFinanceStore((state) => state.removeExpense);
+  const settlements = useFinanceStore((state) => state.settlements);
+  const setExpenseStatus = useFinanceStore((state) => state.setExpenseStatus);
   const total = useFinanceStore(selectMonthlyExpenses);
+  const currentMonth = getMonthKey();
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
@@ -145,6 +155,21 @@ export function ExpensesPage() {
             ) : (
               filtered.map((expense) => {
                 const card = cards.find((item) => item.id === expense.cardId);
+                const occurrenceKey = getExpenseOccurrenceKey(
+                  expense,
+                  currentMonth,
+                );
+                const occurrenceDate = getExpenseOccurrenceDate(
+                  expense,
+                  currentMonth,
+                );
+                const status = getSettlementStatus(
+                  settlements,
+                  occurrenceKey,
+                  'expense',
+                  occurrenceDate,
+                  getTodayDateString(),
+                );
 
                 return (
                   <TableRow key={expense.id}>
@@ -170,6 +195,40 @@ export function ExpensesPage() {
                     </TableCell>
                     <TableCell className='text-right'>
                       <div className='flex justify-end gap-1'>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          onClick={() =>
+                            setExpenseStatus(
+                              occurrenceKey,
+                              status === 'paid' ? 'pending' : 'paid',
+                            )
+                          }
+                          aria-label={`${status === 'paid' ? 'Marcar pendente' : 'Marcar paga'} ${expense.name}`}
+                        >
+                          {status === 'paid'
+                            ? 'Paga'
+                            : status === 'cancelled'
+                              ? 'Cancelada'
+                              : status === 'pending' &&
+                                  occurrenceDate &&
+                                  occurrenceDate < getTodayDateString()
+                                ? 'Em atraso'
+                                : 'Pendente'}
+                        </Button>
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          onClick={() =>
+                            setExpenseStatus(
+                              occurrenceKey,
+                              status === 'cancelled' ? 'pending' : 'cancelled',
+                            )
+                          }
+                          aria-label={`${status === 'cancelled' ? 'Reabrir' : 'Cancelar'} ${expense.name}`}
+                        >
+                          {status === 'cancelled' ? 'Reabrir' : 'Cancelar'}
+                        </Button>
                         <Button
                           variant='ghost'
                           size='icon-sm'

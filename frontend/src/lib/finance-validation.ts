@@ -1,4 +1,4 @@
-import { isValidDateString } from '@/lib/finance-calculations';
+import { isMonthKey, isValidDateString } from '@/lib/finance-calculations';
 import type { IncomeFrequency } from '@/types/finance';
 
 export function isValidName(value: unknown): value is string {
@@ -28,6 +28,18 @@ export function isValidDay(value: unknown): value is number {
 
 export function isValidOptionalDay(value: unknown) {
   return value === undefined || isValidDay(value);
+}
+
+export function isValidMonth(value: unknown): value is string {
+  return isMonthKey(value);
+}
+
+export function isValidOptionalMonth(value: unknown) {
+  return value === undefined || isValidMonth(value);
+}
+
+export function isValidPositiveInteger(value: unknown) {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 export function isValidIncomeDate(frequency: IncomeFrequency, date: unknown) {

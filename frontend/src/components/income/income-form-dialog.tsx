@@ -20,9 +20,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { INCOME_FREQUENCY_LABELS, INCOME_TYPE_LABELS } from '@/data/labels';
+import { getMonthKey } from '@/lib/finance-calculations';
 import {
   isValidIncomeDate,
   isValidMoneyAmount,
+  isValidMonth,
   isValidName,
 } from '@/lib/finance-validation';
 import { parseCurrencyInput } from '@/lib/format';
@@ -41,6 +43,8 @@ type FormState = {
   type: IncomeType;
   frequency: IncomeFrequency;
   date: string;
+  startMonth: string;
+  endMonth: string;
 };
 
 const emptyForm: FormState = {
@@ -49,6 +53,8 @@ const emptyForm: FormState = {
   type: 'salario',
   frequency: 'mensal',
   date: '',
+  startMonth: getMonthKey(),
+  endMonth: '',
 };
 
 export function IncomeFormDialog({
@@ -70,6 +76,8 @@ export function IncomeFormDialog({
         type: income.type,
         frequency: income.frequency,
         date: income.date ?? '',
+        startMonth: income.startMonth ?? getMonthKey(),
+        endMonth: income.endMonth ?? '',
       });
       return;
     }
@@ -87,7 +95,11 @@ export function IncomeFormDialog({
       !isValidIncomeDate(
         form.frequency,
         form.frequency === 'unica' ? form.date : undefined,
-      )
+      ) ||
+      (form.frequency === 'mensal' &&
+        (!isValidMonth(form.startMonth) ||
+          (form.endMonth !== '' &&
+            (!isValidMonth(form.endMonth) || form.endMonth < form.startMonth))))
     ) {
       toast.error('Informe nome e um valor válido');
       return;
@@ -99,6 +111,11 @@ export function IncomeFormDialog({
       type: form.type,
       frequency: form.frequency,
       date: form.frequency === 'unica' ? form.date : undefined,
+      startMonth: form.frequency === 'mensal' ? form.startMonth : undefined,
+      endMonth:
+        form.frequency === 'mensal' && form.endMonth
+          ? form.endMonth
+          : undefined,
     };
 
     if (income) {
@@ -220,6 +237,39 @@ export function IncomeFormDialog({
                 }
                 className='rounded-lg'
               />
+            </div>
+          ) : null}
+
+          {form.frequency === 'mensal' ? (
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='space-y-2'>
+                <Label htmlFor='income-start-month'>Início</Label>
+                <Input
+                  id='income-start-month'
+                  type='month'
+                  value={form.startMonth}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      startMonth: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='income-end-month'>Fim (opcional)</Label>
+                <Input
+                  id='income-end-month'
+                  type='month'
+                  value={form.endMonth}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      endMonth: event.target.value,
+                    }))
+                  }
+                />
+              </div>
             </div>
           ) : null}
 

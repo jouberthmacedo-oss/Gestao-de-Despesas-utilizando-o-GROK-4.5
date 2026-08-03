@@ -1,11 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 
-import {
-  AUTH_COOKIE_NAME,
-  toPublicUser,
-  verifyAuthToken,
-} from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { AUTH_COOKIE_NAME, toPublicUser, verifyAuthToken } from '../lib/auth';
+import { prisma } from '../lib/prisma';
 
 export async function requireAuth(
   req: Request,

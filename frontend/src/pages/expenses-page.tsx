@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ExpenseFormDialog } from '@/components/expenses/expense-form-dialog';
+import { DeleteConfirmDialog } from '@/components/layout/delete-confirm-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ export function ExpensesPage() {
   const [category, setCategory] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringExpense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] =
+    useState<RecurringExpense | null>(null);
 
   const filtered = useMemo(() => {
     return expenses.filter((expense) => {
@@ -66,9 +69,11 @@ export function ExpensesPage() {
     setDialogOpen(true);
   }
 
-  function handleDelete(id: string, name: string) {
-    removeExpense(id);
-    toast.success(`Despesa "${name}" removida`);
+  function confirmDelete() {
+    if (!expenseToDelete) return;
+    removeExpense(expenseToDelete.id);
+    toast.success(`Despesa "${expenseToDelete.name}" removida`);
+    setExpenseToDelete(null);
   }
 
   return (
@@ -169,13 +174,15 @@ export function ExpensesPage() {
                           variant='ghost'
                           size='icon-sm'
                           onClick={() => openEdit(expense)}
+                          aria-label={`Editar despesa ${expense.name}`}
                         >
                           <Pencil className='size-4' />
                         </Button>
                         <Button
                           variant='ghost'
                           size='icon-sm'
-                          onClick={() => handleDelete(expense.id, expense.name)}
+                          onClick={() => setExpenseToDelete(expense)}
+                          aria-label={`Excluir despesa ${expense.name}`}
                         >
                           <Trash2 className='size-4' />
                         </Button>
@@ -198,6 +205,14 @@ export function ExpensesPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         expense={editing}
+      />
+      <DeleteConfirmDialog
+        open={expenseToDelete !== null}
+        itemName={expenseToDelete?.name ?? ''}
+        onOpenChange={(open) => {
+          if (!open) setExpenseToDelete(null);
+        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

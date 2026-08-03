@@ -9,36 +9,15 @@ import {
 } from 'recharts';
 
 import { formatCurrency, formatMonthLabel } from '@/lib/format';
-import {
-  selectMonthlyExpenses,
-  selectMonthlyIncome,
-  useFinanceStore,
-} from '@/stores/finance-store';
+import { selectDashboardSeries, useFinanceStore } from '@/stores/finance-store';
 
 export function IncomeExpenseAreaChart() {
-  const history = useFinanceStore((state) => state.history);
-  const currentIncome = useFinanceStore(selectMonthlyIncome);
-  const currentExpense = useFinanceStore(selectMonthlyExpenses);
-
-  const currentMonth = new Date().toISOString().slice(0, 7);
-
-  const data =
-    history.length === 0
-      ? [
-          {
-            label: formatMonthLabel(currentMonth),
-            income: currentIncome,
-            expense: currentExpense,
-          },
-        ]
-      : history.map((item, index) => {
-          const isLast = index === history.length - 1;
-          return {
-            label: formatMonthLabel(item.month),
-            income: isLast ? currentIncome : item.income,
-            expense: isLast ? currentExpense : item.expense,
-          };
-        });
+  const series = useFinanceStore(selectDashboardSeries);
+  const data = series.map((item) => ({
+    label: formatMonthLabel(item.month),
+    income: item.income,
+    expense: item.expense,
+  }));
 
   return (
     <div className='h-72 w-full'>

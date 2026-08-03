@@ -2,17 +2,16 @@
   "name": "demanage-backend",
   "version": "1.0.0",
   "description": "deManage API",
-  "main": "server.js",
+  "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "dev": "tsx watch -r tsconfig-paths/register src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.{ts,js}\""
-  },
-  "_moduleAliases": {
-    "@": "./src"
+    "format": "prettier --write \"src/**/*.{ts,js}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js}\""
   },
   "keywords": [],
   "author": "",
@@ -29,7 +28,6 @@
     "express-rate-limit": "^8.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "module-alias": "^2.2.3",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
@@ -48,7 +46,6 @@
     "globals": "^16.4.0",
     "prettier": "^3.9.6",
     "prisma": "6.19.3",
-    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.6",
     "typescript-eslint": "^8.46.2"
   }

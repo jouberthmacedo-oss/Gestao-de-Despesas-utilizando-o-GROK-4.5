@@ -1,4 +1,4 @@
-import '@/config/env';
+import '../config/env';
 
 export const NODE_ENV = process.env.NODE_ENV;
 export const API_PORT = process.env.API_PORT;

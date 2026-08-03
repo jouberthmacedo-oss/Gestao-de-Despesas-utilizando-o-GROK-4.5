@@ -1,6 +1,6 @@
-import { Router } from "express";
+import { Router } from 'express';
 
-import entriesRouter from "./entries/index";
+import entriesRouter from './entries/index';
 
 const router = Router();
 

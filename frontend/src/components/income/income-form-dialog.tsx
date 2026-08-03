@@ -20,6 +20,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { INCOME_FREQUENCY_LABELS, INCOME_TYPE_LABELS } from '@/data/labels';
+import {
+  isValidIncomeDate,
+  isValidMoneyAmount,
+  isValidName,
+} from '@/lib/finance-validation';
 import { parseCurrencyInput } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 import type { Income, IncomeFrequency, IncomeType } from '@/types/finance';
@@ -76,7 +81,14 @@ export function IncomeFormDialog({
     event.preventDefault();
 
     const amount = parseCurrencyInput(form.amount);
-    if (!form.name.trim() || amount <= 0) {
+    if (
+      !isValidName(form.name) ||
+      !isValidMoneyAmount(amount) ||
+      !isValidIncomeDate(
+        form.frequency,
+        form.frequency === 'unica' ? form.date : undefined,
+      )
+    ) {
       toast.error('Informe nome e um valor válido');
       return;
     }
@@ -86,7 +98,7 @@ export function IncomeFormDialog({
       amount,
       type: form.type,
       frequency: form.frequency,
-      date: form.frequency === 'unica' ? form.date || undefined : undefined,
+      date: form.frequency === 'unica' ? form.date : undefined,
     };
 
     if (income) {

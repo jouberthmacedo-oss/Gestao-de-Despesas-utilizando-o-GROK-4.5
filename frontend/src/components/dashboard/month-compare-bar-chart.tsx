@@ -10,28 +10,20 @@ import {
 } from 'recharts';
 
 import { formatCurrency } from '@/lib/format';
-import {
-  selectMonthlyExpenses,
-  selectMonthlyIncome,
-  useFinanceStore,
-} from '@/stores/finance-store';
+import { selectMonthComparison, useFinanceStore } from '@/stores/finance-store';
 
 export function MonthCompareBarChart() {
-  const history = useFinanceStore((state) => state.history);
-  const currentIncome = useFinanceStore(selectMonthlyIncome);
-  const currentExpense = useFinanceStore(selectMonthlyExpenses);
-
-  const previous = history[history.length - 2];
+  const { current, previous } = useFinanceStore(selectMonthComparison);
   const data = [
     {
       name: 'Entradas',
-      atual: currentIncome,
-      anterior: previous?.income ?? 0,
+      atual: current.income,
+      anterior: previous?.income ?? null,
     },
     {
       name: 'Saídas',
-      atual: currentExpense,
-      anterior: previous?.expense ?? 0,
+      atual: current.expense,
+      anterior: previous?.expense ?? null,
     },
   ];
 
@@ -80,6 +72,11 @@ export function MonthCompareBarChart() {
           />
         </BarChart>
       </ResponsiveContainer>
+      {!previous ? (
+        <p className='text-center text-xs text-muted-foreground'>
+          Sem histórico do mês anterior.
+        </p>
+      ) : null}
     </div>
   );
 }

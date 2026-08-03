@@ -21,6 +21,11 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORY_LABELS } from '@/data/labels';
+import {
+  isValidDay,
+  isValidMoneyAmount,
+  isValidName,
+} from '@/lib/finance-validation';
 import { parseCurrencyInput } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 import type { ExpenseCategory, RecurringExpense } from '@/types/finance';
@@ -81,7 +86,12 @@ export function ExpenseFormDialog({
     event.preventDefault();
 
     const amount = parseCurrencyInput(form.amount);
-    if (!form.name.trim() || amount <= 0) {
+    const dueDay = form.dueDay ? Number(form.dueDay) : undefined;
+    if (
+      !isValidName(form.name) ||
+      !isValidMoneyAmount(amount) ||
+      (dueDay !== undefined && !isValidDay(dueDay))
+    ) {
       toast.error('Informe nome e um valor válido');
       return;
     }
@@ -92,7 +102,7 @@ export function ExpenseFormDialog({
       category: form.category,
       frequency: 'mensal' as const,
       cardId: form.cardId === 'none' ? undefined : form.cardId,
-      dueDay: form.dueDay ? Number(form.dueDay) : undefined,
+      dueDay,
       notes: form.notes.trim() || undefined,
     };
 

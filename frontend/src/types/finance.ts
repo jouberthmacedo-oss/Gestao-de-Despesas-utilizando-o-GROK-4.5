@@ -8,7 +8,6 @@ export type Card = {
 
 export type Profile = {
   name: string;
-  salary: number;
   notes?: string;
   cards: Card[];
 };

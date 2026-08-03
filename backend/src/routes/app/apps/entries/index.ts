@@ -1,6 +1,6 @@
-import { Router } from "express";
+import { Router } from 'express';
 
-import postEntriesRouter from "./[POST] - entries";
+import postEntriesRouter from './[POST] - entries';
 
 const router = Router();
 

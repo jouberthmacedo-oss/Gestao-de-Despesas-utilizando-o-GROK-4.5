@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { IncomeFormDialog } from '@/components/income/income-form-dialog';
+import { DeleteConfirmDialog } from '@/components/layout/delete-confirm-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export function IncomePage() {
   const [type, setType] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
+  const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
 
   const filtered = useMemo(() => {
     return incomes.filter((income) => {
@@ -63,9 +65,11 @@ export function IncomePage() {
     setDialogOpen(true);
   }
 
-  function handleDelete(id: string, name: string) {
-    removeIncome(id);
-    toast.success(`Entrada "${name}" removida`);
+  function confirmDelete() {
+    if (!incomeToDelete) return;
+    removeIncome(incomeToDelete.id);
+    toast.success(`Entrada "${incomeToDelete.name}" removida`);
+    setIncomeToDelete(null);
   }
 
   return (
@@ -157,13 +161,15 @@ export function IncomePage() {
                         variant='ghost'
                         size='icon-sm'
                         onClick={() => openEdit(income)}
+                        aria-label={`Editar entrada ${income.name}`}
                       >
                         <Pencil className='size-4' />
                       </Button>
                       <Button
                         variant='ghost'
                         size='icon-sm'
-                        onClick={() => handleDelete(income.id, income.name)}
+                        onClick={() => setIncomeToDelete(income)}
+                        aria-label={`Excluir entrada ${income.name}`}
                       >
                         <Trash2 className='size-4' />
                       </Button>
@@ -185,6 +191,14 @@ export function IncomePage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         income={editing}
+      />
+      <DeleteConfirmDialog
+        open={incomeToDelete !== null}
+        itemName={incomeToDelete?.name ?? ''}
+        onOpenChange={(open) => {
+          if (!open) setIncomeToDelete(null);
+        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { DeleteConfirmDialog } from '@/components/layout/delete-confirm-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { CardFormDialog } from '@/components/profile/card-form-dialog';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { formatCurrency, parseCurrencyInput } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 import type { Card } from '@/types/finance';
 
@@ -26,24 +27,20 @@ export function ProfilePage() {
   const removeCard = useFinanceStore((state) => state.removeCard);
 
   const [name, setName] = useState(profile.name);
-  const [salary, setSalary] = useState(
-    String(profile.salary).replace('.', ','),
-  );
   const [notes, setNotes] = useState(profile.notes ?? '');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
 
   useEffect(() => {
     setName(profile.name);
-    setSalary(String(profile.salary).replace('.', ','));
     setNotes(profile.notes ?? '');
-  }, [profile.name, profile.salary, profile.notes]);
+  }, [profile.name, profile.notes]);
 
   function handleSaveProfile(event: React.FormEvent) {
     event.preventDefault();
     updateProfile({
       name: name.trim() || 'Usuário',
-      salary: parseCurrencyInput(salary),
       notes: notes.trim() || undefined,
     });
     toast.success('Perfil atualizado');
@@ -59,9 +56,11 @@ export function ProfilePage() {
     setDialogOpen(true);
   }
 
-  function handleDeleteCard(id: string, cardName: string) {
-    removeCard(id);
-    toast.success(`Cartão "${cardName}" removido`);
+  function confirmDeleteCard() {
+    if (!cardToDelete) return;
+    removeCard(cardToDelete.id);
+    toast.success(`Cartão "${cardToDelete.name}" removido`);
+    setCardToDelete(null);
   }
 
   return (
@@ -69,7 +68,7 @@ export function ProfilePage() {
       <title>Perfil | deManage</title>
       <PageHeader
         title='Perfil'
-        description='Salário, cartões e informações úteis para o mês.'
+        description='Identidade, cartões e informações úteis para o mês.'
       />
 
       <form
@@ -78,23 +77,13 @@ export function ProfilePage() {
       >
         <h2 className='text-lg font-medium'>Informações gerais</h2>
 
-        <div className='grid gap-4 sm:grid-cols-2'>
+        <div>
           <div className='space-y-2'>
             <Label htmlFor='profile-name'>Nome</Label>
             <Input
               id='profile-name'
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className='rounded-lg'
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='profile-salary'>Salário mensal</Label>
-            <Input
-              id='profile-salary'
-              value={salary}
-              onChange={(event) => setSalary(event.target.value)}
-              placeholder='0,00'
               className='rounded-lg'
             />
           </div>
@@ -170,13 +159,15 @@ export function ProfilePage() {
                           variant='ghost'
                           size='icon-sm'
                           onClick={() => openEditCard(card)}
+                          aria-label={`Editar cartão ${card.name}`}
                         >
                           <Pencil className='size-4' />
                         </Button>
                         <Button
                           variant='ghost'
                           size='icon-sm'
-                          onClick={() => handleDeleteCard(card.id, card.name)}
+                          onClick={() => setCardToDelete(card)}
+                          aria-label={`Excluir cartão ${card.name}`}
                         >
                           <Trash2 className='size-4' />
                         </Button>
@@ -194,6 +185,15 @@ export function ProfilePage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         card={editingCard}
+      />
+      <DeleteConfirmDialog
+        open={cardToDelete !== null}
+        itemName={cardToDelete?.name ?? ''}
+        description={`Remover “${cardToDelete?.name ?? ''}”? As despesas vinculadas permanecerão cadastradas, mas ficarão sem cartão.`}
+        onOpenChange={(open) => {
+          if (!open) setCardToDelete(null);
+        }}
+        onConfirm={confirmDeleteCard}
       />
     </div>
   );

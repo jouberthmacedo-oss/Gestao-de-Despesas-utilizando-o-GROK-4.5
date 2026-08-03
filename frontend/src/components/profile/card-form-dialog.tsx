@@ -12,6 +12,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  isValidDay,
+  isValidName,
+  isValidOptionalDay,
+  isValidOptionalMoneyAmount,
+} from '@/lib/finance-validation';
 import { parseCurrencyInput } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 import type { Card } from '@/types/finance';
@@ -64,16 +70,29 @@ export function CardFormDialog({
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
-    if (!form.name.trim()) {
+    const limit = form.limit.trim()
+      ? parseCurrencyInput(form.limit)
+      : undefined;
+    const closingDay = form.closingDay ? Number(form.closingDay) : undefined;
+    const dueDay = form.dueDay ? Number(form.dueDay) : undefined;
+
+    if (
+      !isValidName(form.name) ||
+      !isValidOptionalMoneyAmount(limit) ||
+      !isValidOptionalDay(closingDay) ||
+      !isValidOptionalDay(dueDay) ||
+      (closingDay !== undefined && !isValidDay(closingDay)) ||
+      (dueDay !== undefined && !isValidDay(dueDay))
+    ) {
       toast.error('Informe o nome do cartão');
       return;
     }
 
     const payload = {
       name: form.name.trim(),
-      limit: form.limit ? parseCurrencyInput(form.limit) : undefined,
-      closingDay: form.closingDay ? Number(form.closingDay) : undefined,
-      dueDay: form.dueDay ? Number(form.dueDay) : undefined,
+      limit,
+      closingDay,
+      dueDay,
     };
 
     if (card) {

@@ -1,4 +1,10 @@
-import { LayoutDashboard, Receipt, TrendingUp, UserRound } from 'lucide-react';
+import {
+  CalendarRange,
+  LayoutDashboard,
+  Receipt,
+  TrendingUp,
+  UserRound,
+} from 'lucide-react';
 import { NavLink } from 'react-router';
 
 import {
@@ -13,6 +19,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/despesas', label: 'Despesas', icon: Receipt },
   { to: '/entradas', label: 'Entradas', icon: TrendingUp },
+  { to: '/planejamento', label: 'Planejamento', icon: CalendarRange },
 ];
 
 export function AppSidebar() {

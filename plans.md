@@ -51,6 +51,13 @@ Checklist vivo das features. Agents devem **sempre** ler este arquivo e seguir a
 ## P2+ — Backlog (não fazer sem pedido explícito)
 
 - [x] ~~Auth / login real~~ — JWT em cookie httpOnly; `POST /auth/register|login|logout`, `GET /auth/me`; telas `/login` e `/register` (shadcn Field/Card); rotas do app protegidas. Financeiro ainda no Zustand/localStorage.
+- [x] **Financeiro: salário recorrente como fonte única** — salário local recorrente, migração segura do campo legado do Prisma e payload autenticado sem salário.
+- [x] **Financeiro: histórico mensal por calendário** — limites explícitos de recorrência, datas date-only e snapshots legados como fallback.
+- [x] **Financeiro: faturas de cartão** — ciclos de fechamento/vencimento, totais por status e limite derivado.
+- [x] **Financeiro: compras parceladas** — divisão exata em centavos, grupos estáveis e parcelas por ciclo.
+- [x] **Financeiro: status de liquidação** — estados por ocorrência mensal/parcela com timestamps derivados.
+- [x] **Financeiro: orçamentos mensais** — limite por categoria, uso planejado/pago e períodos sem sobreposição.
+- [x] **Financeiro: metas de economia** — contribuições auditáveis, conclusão, edição e arquivamento.
 - [ ] API CRUD Express + Prisma (`User`, `Card`, `Expense`, `Entry`)
 - [ ] Frontend: trocar Zustand/localStorage pela API
 - [ ] Seed / histórico mensal no DB (gráficos do dashboard)

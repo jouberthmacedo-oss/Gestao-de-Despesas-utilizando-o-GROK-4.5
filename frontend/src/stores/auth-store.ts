@@ -18,6 +18,28 @@ type AuthState = {
   logout: () => Promise<void>;
 };
 
+export function isAuthUser(value: unknown): value is AuthUser {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.name === 'string' &&
+    typeof record.email === 'string' &&
+    (record.notes === null || typeof record.notes === 'string') &&
+    typeof record.createdAt === 'string' &&
+    typeof record.updatedAt === 'string'
+  );
+}
+
+function getAuthUser(value: unknown) {
+  const user =
+    typeof value === 'object' && value !== null
+      ? (value as { user?: unknown }).user
+      : undefined;
+  if (!isAuthUser(user)) throw new Error('Resposta de autenticação inválida');
+  return user;
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
@@ -33,12 +55,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   fetchMe: async () => {
     try {
       const { data } = await api.get<{ user: AuthUser }>('/auth/me');
+      const user = getAuthUser(data);
       set({
-        user: data.user,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
-      return data.user;
+      return user;
     } catch {
       set({
         user: null,
@@ -54,12 +77,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       email,
       password,
     });
+    const user = getAuthUser(data);
     set({
-      user: data.user,
+      user,
       isAuthenticated: true,
       isLoading: false,
     });
-    return data.user;
+    return user;
   },
 
   register: async (name, email, password) => {
@@ -68,12 +92,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       email,
       password,
     });
+    const user = getAuthUser(data);
     set({
-      user: data.user,
+      user,
       isAuthenticated: true,
       isLoading: false,
     });
-    return data.user;
+    return user;
   },
 
   logout: async () => {

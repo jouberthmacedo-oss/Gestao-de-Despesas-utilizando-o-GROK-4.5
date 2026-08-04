@@ -61,6 +61,10 @@ test('auth and application routes remain mounted', async () => {
       ).status,
       401,
     );
+
+    for (const path of ['/cards', '/expenses', '/entries']) {
+      assert.equal((await fetch(`${baseUrl}${path}`)).status, 401);
+    }
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => (error ? reject(error) : resolve()));

@@ -5,6 +5,7 @@ import { requireAuth } from '../../../../middlewares/require-auth';
 import {
   asObject,
   EXPENSE_CATEGORIES,
+  hasOnlyAllowedFields,
   hasOwn,
   isExpenseCategory,
   parseMoney,
@@ -16,13 +17,26 @@ import {
 } from '../validation';
 
 const router = Router();
+const EXPENSE_PATCH_FIELDS = [
+  'name',
+  'amount',
+  'category',
+  'frequency',
+  'cardId',
+  'dueDay',
+  'notes',
+] as const;
 
 router.patch('/:id', requireAuth, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Não autenticado' });
 
   const body = asObject(req.body);
-  if (!body || Object.keys(body).length === 0) {
+  if (
+    !body ||
+    Object.keys(body).length === 0 ||
+    !hasOnlyAllowedFields(body, EXPENSE_PATCH_FIELDS)
+  ) {
     return res.status(400).json({ error: 'Informe ao menos um campo' });
   }
 

@@ -108,10 +108,10 @@ function createMemoryStorage() {
   };
 }
 
+const memoryStorage = createMemoryStorage();
+
 function getRawStorage() {
-  return typeof window === 'undefined'
-    ? createMemoryStorage()
-    : window.localStorage;
+  return typeof window === 'undefined' ? memoryStorage : window.localStorage;
 }
 
 function normalizeCard(card: Card): Card | null {
@@ -219,9 +219,8 @@ function removeOccurrences(settlements: Settlement[], id: string) {
   );
 }
 
-const storage = createJSONStorage<FinanceState>(() =>
-  createFinanceStorage(getRawStorage()),
-);
+const financeStorage = createFinanceStorage(getRawStorage());
+const storage = createJSONStorage<FinanceState>(() => financeStorage);
 
 export const FINANCE_STORAGE_VERSION = 4;
 
@@ -632,6 +631,27 @@ export const useFinanceStore = create<FinanceStore>()(
     },
   ),
 );
+
+let activeFinanceUserId: string | null = null;
+
+export function switchFinanceUser(userId: string | null) {
+  const nextUserId = userId?.trim() || null;
+  if (activeFinanceUserId === nextUserId) {
+    if (!nextUserId)
+      useFinanceStore.setState(cloneFinanceState(emptyFinanceState));
+    return;
+  }
+
+  activeFinanceUserId = null;
+  financeStorage.setUserId(null);
+  useFinanceStore.setState(cloneFinanceState(emptyFinanceState));
+
+  if (!nextUserId) return;
+
+  activeFinanceUserId = nextUserId;
+  financeStorage.setUserId(nextUserId);
+  void useFinanceStore.persist.rehydrate();
+}
 
 export function selectMonthlyIncome(
   state: FinanceState,

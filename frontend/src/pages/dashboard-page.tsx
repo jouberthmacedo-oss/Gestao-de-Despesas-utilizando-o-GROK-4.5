@@ -1,3 +1,4 @@
+import { CardCommitmentChart } from '@/components/dashboard/card-commitment-chart';
 import { CategoryDonutChart } from '@/components/dashboard/category-donut-chart';
 import { IncomeExpenseAreaChart } from '@/components/dashboard/income-expense-area-chart';
 import { KpiCard } from '@/components/dashboard/kpi-card';
@@ -100,14 +101,26 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className='rounded-xl border border-border p-5'>
-        <div className='mb-4'>
-          <h2 className='text-base font-medium'>Este mês vs mês passado</h2>
-          <p className='text-sm text-muted-foreground'>
-            Entradas e saídas lado a lado
-          </p>
+      <div className='grid gap-4 xl:grid-cols-2'>
+        <div className='rounded-xl border border-border p-5'>
+          <div className='mb-4'>
+            <h2 className='text-base font-medium'>Este mês vs mês passado</h2>
+            <p className='text-sm text-muted-foreground'>
+              Entradas e saídas lado a lado
+            </p>
+          </div>
+          <MonthCompareBarChart />
         </div>
-        <MonthCompareBarChart />
+
+        <div className='rounded-xl border border-border p-5'>
+          <div className='mb-4'>
+            <h2 className='text-base font-medium'>Comprometimento do cartão</h2>
+            <p className='text-sm text-muted-foreground'>
+              % do limite usado por despesas vinculadas
+            </p>
+          </div>
+          <CardCommitmentChart />
+        </div>
       </div>
     </div>
   );

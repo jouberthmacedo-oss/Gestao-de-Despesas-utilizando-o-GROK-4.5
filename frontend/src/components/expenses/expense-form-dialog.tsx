@@ -21,9 +21,11 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORY_LABELS } from '@/data/labels';
+import { getMonthKey } from '@/lib/finance-calculations';
 import {
   isValidDay,
   isValidMoneyAmount,
+  isValidMonth,
   isValidName,
 } from '@/lib/finance-validation';
 import { parseCurrencyInput } from '@/lib/format';
@@ -42,6 +44,8 @@ type FormState = {
   category: ExpenseCategory;
   cardId: string;
   dueDay: string;
+  startMonth: string;
+  endMonth: string;
   notes: string;
 };
 
@@ -51,6 +55,8 @@ const emptyForm: FormState = {
   category: 'assinatura',
   cardId: 'none',
   dueDay: '',
+  startMonth: getMonthKey(),
+  endMonth: '',
   notes: '',
 };
 
@@ -74,6 +80,8 @@ export function ExpenseFormDialog({
         category: expense.category,
         cardId: expense.cardId ?? 'none',
         dueDay: expense.dueDay ? String(expense.dueDay) : '',
+        startMonth: expense.startMonth ?? getMonthKey(),
+        endMonth: expense.endMonth ?? '',
         notes: expense.notes ?? '',
       });
       return;
@@ -90,7 +98,10 @@ export function ExpenseFormDialog({
     if (
       !isValidName(form.name) ||
       !isValidMoneyAmount(amount) ||
-      (dueDay !== undefined && !isValidDay(dueDay))
+      (dueDay !== undefined && !isValidDay(dueDay)) ||
+      !isValidMonth(form.startMonth) ||
+      (form.endMonth !== '' &&
+        (!isValidMonth(form.endMonth) || form.endMonth < form.startMonth))
     ) {
       toast.error('Informe nome e um valor válido');
       return;
@@ -103,6 +114,8 @@ export function ExpenseFormDialog({
       frequency: 'mensal' as const,
       cardId: form.cardId === 'none' ? undefined : form.cardId,
       dueDay,
+      startMonth: form.startMonth,
+      endMonth: form.endMonth || undefined,
       notes: form.notes.trim() || undefined,
     };
 
@@ -175,6 +188,37 @@ export function ExpenseFormDialog({
                 }
                 placeholder='10'
                 className='rounded-lg'
+              />
+            </div>
+          </div>
+
+          <div className='grid grid-cols-2 gap-3'>
+            <div className='space-y-2'>
+              <Label htmlFor='expense-start-month'>Início</Label>
+              <Input
+                id='expense-start-month'
+                type='month'
+                value={form.startMonth}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    startMonth: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='expense-end-month'>Fim (opcional)</Label>
+              <Input
+                id='expense-end-month'
+                type='month'
+                value={form.endMonth}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    endMonth: event.target.value,
+                  }))
+                }
               />
             </div>
           </div>

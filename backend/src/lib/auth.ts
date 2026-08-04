@@ -62,7 +62,6 @@ export function toPublicUser(user: User): PublicUser {
     id: user.id,
     name: user.name,
     email: user.email,
-    salary: Number(user.salary),
     notes: user.notes,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

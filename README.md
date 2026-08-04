@@ -42,8 +42,10 @@ API em `http://localhost:8888` (`GET /health`)
 ## Dados financeiros locais
 
 - O financeiro ainda usa Zustand/localStorage, na chave canônica `demanage-finance-v2`.
-- A fonte de salário local é uma entrada recorrente; o campo `User.salary` do Prisma permanece preservado e desconectado até a implementação do CRUD financeiro.
+- A fonte de salário é uma entrada recorrente; a migração Prisma transfere o legado `User.salary` para `Entry` antes de remover a coluna.
 - A chave legada `demanage-finance` é importada apenas quando a chave canônica não contém um estado utilizável, sem reintroduzir dados de demonstração.
+- O estado persistido está na versão 4 e mantém recorrências date-only, snapshots legados como fallback, liquidações por ocorrência, faturas, parcelas, orçamentos e metas.
+- A rota `/planejamento` reúne faturas, compras parceladas, orçamentos e metas sem duplicar totais derivados no localStorage.
 
 ## Docs para agents
 

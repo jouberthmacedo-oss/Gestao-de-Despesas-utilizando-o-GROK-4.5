@@ -70,6 +70,20 @@ test('existing recurring salary prevents duplicate migration and stale dates are
   assert.equal('date' in migrated.incomes[0], false);
 });
 
+test('zero legacy salary creates no recurring income', () => {
+  const migrated = migrateFinanceState(
+    {
+      profile: { name: 'Pessoa', salary: 0, cards: [] },
+      expenses: [],
+      incomes: [],
+      history: [],
+    },
+    3,
+    '2026-01',
+  );
+  assert.deepEqual(migrated.incomes, []);
+});
+
 test('malformed optional fields do not discard unrelated valid records', () => {
   const migrated = migrateFinanceState({
     profile: {
@@ -121,6 +135,41 @@ test('legacy storage is selected when canonical state is unusable', () => {
   );
 
   assert.equal(storage.getItem(FINANCE_STORAGE_KEY), legacy);
+});
+
+test('version four migration is idempotent and initializes new collections without mock data', () => {
+  const source = {
+    profile: { name: 'Pessoa', cards: [] },
+    expenses: [],
+    incomes: [
+      {
+        id: 'income-1',
+        name: 'Salario',
+        amount: 1000,
+        type: 'salario',
+        frequency: 'mensal',
+      },
+    ],
+    history: [{ month: '2025-12', income: 1000, expense: 500 }],
+  };
+  const migrated = migrateFinanceState(
+    source,
+    3,
+    '2026-01',
+    '2026-01-01T00:00:00.000Z',
+  );
+  const repeated = migrateFinanceState(
+    migrated,
+    4,
+    '2026-01',
+    '2027-01-01T00:00:00.000Z',
+  );
+  assert.deepEqual(repeated, migrated);
+  assert.deepEqual(migrated.settlements, []);
+  assert.deepEqual(migrated.budgets, []);
+  assert.deepEqual(migrated.goals, []);
+  assert.deepEqual(migrated.contributions, []);
+  assert.deepEqual(migrated.history, source.history);
 });
 
 test('Brazilian currency parsing accepts realistic formats and rejects malformed input', () => {

@@ -24,6 +24,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { INCOME_FREQUENCY_LABELS, INCOME_TYPE_LABELS } from '@/data/labels';
+import {
+  getIncomeOccurrenceDate,
+  getIncomeOccurrenceKey,
+  getMonthKey,
+  getSettlementStatus,
+  getTodayDateString,
+} from '@/lib/finance-calculations';
 import { formatCurrency } from '@/lib/format';
 import { selectMonthlyIncome, useFinanceStore } from '@/stores/finance-store';
 import type { Income, IncomeType } from '@/types/finance';
@@ -37,7 +44,10 @@ const typeColors: Record<IncomeType, string> = {
 export function IncomePage() {
   const incomes = useFinanceStore((state) => state.incomes);
   const removeIncome = useFinanceStore((state) => state.removeIncome);
+  const settlements = useFinanceStore((state) => state.settlements);
+  const setIncomeStatus = useFinanceStore((state) => state.setIncomeStatus);
   const total = useFinanceStore(selectMonthlyIncome);
+  const currentMonth = getMonthKey();
 
   const [search, setSearch] = useState('');
   const [type, setType] = useState<string>('all');
@@ -140,41 +150,100 @@ export function IncomePage() {
             ) : (
               filtered.map((income) => (
                 <TableRow key={income.id}>
-                  <TableCell className='font-medium'>{income.name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant='outline'
-                      className={typeColors[income.type]}
-                    >
-                      {INCOME_TYPE_LABELS[income.type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className='text-muted-foreground'>
-                    {INCOME_FREQUENCY_LABELS[income.frequency]}
-                  </TableCell>
-                  <TableCell className='text-right font-semibold'>
-                    {formatCurrency(income.amount)}
-                  </TableCell>
-                  <TableCell className='text-right'>
-                    <div className='flex justify-end gap-1'>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        onClick={() => openEdit(income)}
-                        aria-label={`Editar entrada ${income.name}`}
-                      >
-                        <Pencil className='size-4' />
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        onClick={() => setIncomeToDelete(income)}
-                        aria-label={`Excluir entrada ${income.name}`}
-                      >
-                        <Trash2 className='size-4' />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {(() => {
+                    const occurrenceKey = getIncomeOccurrenceKey(
+                      income,
+                      currentMonth,
+                    );
+                    const occurrenceDate = getIncomeOccurrenceDate(
+                      income,
+                      currentMonth,
+                    );
+                    const status = getSettlementStatus(
+                      settlements,
+                      occurrenceKey,
+                      'income',
+                      occurrenceDate,
+                      getTodayDateString(),
+                    );
+                    return (
+                      <>
+                        <TableCell className='font-medium'>
+                          {income.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant='outline'
+                            className={typeColors[income.type]}
+                          >
+                            {INCOME_TYPE_LABELS[income.type]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className='text-muted-foreground'>
+                          {INCOME_FREQUENCY_LABELS[income.frequency]}
+                        </TableCell>
+                        <TableCell className='text-right font-semibold'>
+                          {formatCurrency(income.amount)}
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          <div className='flex justify-end gap-1'>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() =>
+                                setIncomeStatus(
+                                  occurrenceKey,
+                                  status === 'received'
+                                    ? 'pending'
+                                    : 'received',
+                                )
+                              }
+                              aria-label={`${status === 'received' ? 'Marcar pendente' : 'Marcar recebida'} ${income.name}`}
+                            >
+                              {status === 'received'
+                                ? 'Recebida'
+                                : status === 'pending' &&
+                                    occurrenceDate &&
+                                    occurrenceDate < getTodayDateString()
+                                  ? 'Em atraso'
+                                  : 'Pendente'}
+                            </Button>
+                            <Button
+                              size='sm'
+                              variant='ghost'
+                              onClick={() =>
+                                setIncomeStatus(
+                                  occurrenceKey,
+                                  status === 'cancelled'
+                                    ? 'pending'
+                                    : 'cancelled',
+                                )
+                              }
+                              aria-label={`${status === 'cancelled' ? 'Reabrir' : 'Cancelar'} ${income.name}`}
+                            >
+                              {status === 'cancelled' ? 'Reabrir' : 'Cancelar'}
+                            </Button>
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              onClick={() => openEdit(income)}
+                              aria-label={`Editar entrada ${income.name}`}
+                            >
+                              <Pencil className='size-4' />
+                            </Button>
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              onClick={() => setIncomeToDelete(income)}
+                              aria-label={`Excluir entrada ${income.name}`}
+                            >
+                              <Trash2 className='size-4' />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    );
+                  })()}
                 </TableRow>
               ))
             )}

@@ -34,7 +34,6 @@ model User {
   name         String
   email        String    @unique
   passwordHash String
-  salary       Decimal   @default(0) @db.Decimal(12, 2)
   notes        String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

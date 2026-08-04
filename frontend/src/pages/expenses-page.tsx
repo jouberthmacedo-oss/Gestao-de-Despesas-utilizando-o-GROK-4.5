@@ -1,9 +1,9 @@
-import { isAxiosError } from 'axios';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ExpenseFormDialog } from '@/components/expenses/expense-form-dialog';
+import { DeleteConfirmDialog } from '@/components/layout/delete-confirm-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import {
   Table,
   TableBody,
@@ -25,7 +24,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { EXPENSE_CATEGORY_LABELS } from '@/data/labels';
-import { useDeleteExpense, useExpenses } from '@/hooks/use-expenses';
+import {
+  getExpenseOccurrenceDate,
+  getExpenseOccurrenceKey,
+  getMonthKey,
+  getSettlementStatus,
+  getTodayDateString,
+} from '@/lib/finance-calculations';
 import { formatCurrency } from '@/lib/format';
 import { selectMonthlyExpenses, useFinanceStore } from '@/stores/finance-store';
 import type { ExpenseCategory, RecurringExpense } from '@/types/finance';
@@ -38,15 +43,20 @@ const categoryColors: Record<ExpenseCategory, string> = {
 };
 
 export function ExpensesPage() {
-  const { data: expenses = [], isLoading, isError } = useExpenses();
+  const expenses = useFinanceStore((state) => state.expenses);
   const cards = useFinanceStore((state) => state.profile.cards);
-  const removeExpense = useDeleteExpense();
+  const removeExpense = useFinanceStore((state) => state.removeExpense);
+  const settlements = useFinanceStore((state) => state.settlements);
+  const setExpenseStatus = useFinanceStore((state) => state.setExpenseStatus);
   const total = useFinanceStore(selectMonthlyExpenses);
+  const currentMonth = getMonthKey();
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringExpense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] =
+    useState<RecurringExpense | null>(null);
 
   const filtered = useMemo(() => {
     return expenses.filter((expense) => {
@@ -69,16 +79,11 @@ export function ExpensesPage() {
     setDialogOpen(true);
   }
 
-  async function handleDelete(id: string, name: string) {
-    try {
-      await removeExpense.mutateAsync(id);
-      toast.success(`Despesa "${name}" removida`);
-    } catch (err) {
-      const message = isAxiosError(err)
-        ? (err.response?.data?.error ?? 'Não foi possível remover a despesa')
-        : 'Não foi possível remover a despesa';
-      toast.error(message);
-    }
+  function confirmDelete() {
+    if (!expenseToDelete) return;
+    removeExpense(expenseToDelete.id);
+    toast.success(`Despesa "${expenseToDelete.name}" removida`);
+    setExpenseToDelete(null);
   }
 
   return (
@@ -138,22 +143,7 @@ export function ExpensesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className='h-24 text-center'>
-                  <Spinner className='mx-auto size-5' />
-                </TableCell>
-              </TableRow>
-            ) : isError ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className='h-24 text-center text-destructive'
-                >
-                  Não foi possível carregar as despesas.
-                </TableCell>
-              </TableRow>
-            ) : filtered.length === 0 ? (
+            {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -165,6 +155,21 @@ export function ExpensesPage() {
             ) : (
               filtered.map((expense) => {
                 const card = cards.find((item) => item.id === expense.cardId);
+                const occurrenceKey = getExpenseOccurrenceKey(
+                  expense,
+                  currentMonth,
+                );
+                const occurrenceDate = getExpenseOccurrenceDate(
+                  expense,
+                  currentMonth,
+                );
+                const status = getSettlementStatus(
+                  settlements,
+                  occurrenceKey,
+                  'expense',
+                  occurrenceDate,
+                  getTodayDateString(),
+                );
 
                 return (
                   <TableRow key={expense.id}>
@@ -191,19 +196,52 @@ export function ExpensesPage() {
                     <TableCell className='text-right'>
                       <div className='flex justify-end gap-1'>
                         <Button
+                          size='sm'
+                          variant='outline'
+                          onClick={() =>
+                            setExpenseStatus(
+                              occurrenceKey,
+                              status === 'paid' ? 'pending' : 'paid',
+                            )
+                          }
+                          aria-label={`${status === 'paid' ? 'Marcar pendente' : 'Marcar paga'} ${expense.name}`}
+                        >
+                          {status === 'paid'
+                            ? 'Paga'
+                            : status === 'cancelled'
+                              ? 'Cancelada'
+                              : status === 'pending' &&
+                                  occurrenceDate &&
+                                  occurrenceDate < getTodayDateString()
+                                ? 'Em atraso'
+                                : 'Pendente'}
+                        </Button>
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          onClick={() =>
+                            setExpenseStatus(
+                              occurrenceKey,
+                              status === 'cancelled' ? 'pending' : 'cancelled',
+                            )
+                          }
+                          aria-label={`${status === 'cancelled' ? 'Reabrir' : 'Cancelar'} ${expense.name}`}
+                        >
+                          {status === 'cancelled' ? 'Reabrir' : 'Cancelar'}
+                        </Button>
+                        <Button
                           variant='ghost'
                           size='icon-sm'
                           onClick={() => openEdit(expense)}
+                          aria-label={`Editar despesa ${expense.name}`}
                         >
                           <Pencil className='size-4' />
                         </Button>
                         <Button
                           variant='ghost'
                           size='icon-sm'
-                          disabled={removeExpense.isPending}
-                          onClick={() =>
-                            void handleDelete(expense.id, expense.name)
-                          }
+                          onClick={() => setExpenseToDelete(expense)}
+                          aria-label={`Excluir despesa ${expense.name}`}
                         >
                           <Trash2 className='size-4' />
                         </Button>
@@ -226,6 +264,14 @@ export function ExpensesPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         expense={editing}
+      />
+      <DeleteConfirmDialog
+        open={expenseToDelete !== null}
+        itemName={expenseToDelete?.name ?? ''}
+        onOpenChange={(open) => {
+          if (!open) setExpenseToDelete(null);
+        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

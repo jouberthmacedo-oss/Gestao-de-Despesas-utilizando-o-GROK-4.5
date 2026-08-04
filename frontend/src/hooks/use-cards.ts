@@ -1,32 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 
 import {
+  type CardPayload,
   createCard,
   deleteCard,
   listCards,
   updateCard,
-  type CardPayload,
 } from '@/lib/cards-api';
-import { useFinanceStore } from '@/stores/finance-store';
 
 export const CARDS_QUERY_KEY = ['cards'] as const;
 
 export function useCards() {
-  const setCards = useFinanceStore((state) => state.setCards);
-
-  const query = useQuery({
+  return useQuery({
     queryKey: CARDS_QUERY_KEY,
     queryFn: listCards,
   });
-
-  useEffect(() => {
-    if (query.data) {
-      setCards(query.data);
-    }
-  }, [query.data, setCards]);
-
-  return query;
 }
 
 export function useCreateCard() {

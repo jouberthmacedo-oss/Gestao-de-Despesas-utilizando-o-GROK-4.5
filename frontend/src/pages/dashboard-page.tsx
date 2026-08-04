@@ -9,6 +9,7 @@ import {
   selectAverageMonthlyExpense,
   selectMonthlyExpenses,
   selectMonthlyIncome,
+  selectMonthlySummary,
   selectRecurringShare,
   useFinanceStore,
 } from '@/stores/finance-store';
@@ -20,6 +21,7 @@ export function DashboardPage() {
   const averageExpense = useFinanceStore(selectAverageMonthlyExpense);
   const recurringShare = useFinanceStore(selectRecurringShare);
   const balance = income - expenses;
+  const summary = useFinanceStore(selectMonthlySummary);
 
   return (
     <div className='space-y-6'>
@@ -48,6 +50,33 @@ export function DashboardPage() {
           hint={balance >= 0 ? 'Sobra prevista' : 'Deficit previsto'}
           tone={balance >= 0 ? 'positive' : 'negative'}
         />
+      </div>
+
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+        <div className='rounded-xl border border-border p-4'>
+          <p className='text-sm text-muted-foreground'>Despesas pagas</p>
+          <p className='mt-1 text-lg font-semibold'>
+            {formatCurrency(summary.paidExpense)}
+          </p>
+        </div>
+        <div className='rounded-xl border border-border p-4'>
+          <p className='text-sm text-muted-foreground'>Despesas pendentes</p>
+          <p className='mt-1 text-lg font-semibold'>
+            {formatCurrency(summary.pendingExpense)}
+          </p>
+        </div>
+        <div className='rounded-xl border border-border p-4'>
+          <p className='text-sm text-muted-foreground'>Entradas recebidas</p>
+          <p className='mt-1 text-lg font-semibold'>
+            {formatCurrency(summary.receivedIncome)}
+          </p>
+        </div>
+        <div className='rounded-xl border border-border p-4'>
+          <p className='text-sm text-muted-foreground'>Obrigações em atraso</p>
+          <p className='mt-1 text-lg font-semibold'>
+            {formatCurrency(summary.overdueExpense)}
+          </p>
+        </div>
       </div>
 
       <div className='grid gap-4 xl:grid-cols-3'>

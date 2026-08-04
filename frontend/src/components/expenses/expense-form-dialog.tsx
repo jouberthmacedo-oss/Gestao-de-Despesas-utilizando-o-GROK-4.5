@@ -1,4 +1,3 @@
-import { isAxiosError } from 'axios';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -20,10 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { EXPENSE_CATEGORY_LABELS } from '@/data/labels';
-import { useCreateExpense, useUpdateExpense } from '@/hooks/use-expenses';
+import { getMonthKey } from '@/lib/finance-calculations';
+import {
+  isValidDay,
+  isValidMoneyAmount,
+  isValidMonth,
+  isValidName,
+} from '@/lib/finance-validation';
 import { parseCurrencyInput } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 import type { ExpenseCategory, RecurringExpense } from '@/types/finance';
@@ -40,6 +44,8 @@ type FormState = {
   category: ExpenseCategory;
   cardId: string;
   dueDay: string;
+  startMonth: string;
+  endMonth: string;
   notes: string;
 };
 
@@ -49,6 +55,8 @@ const emptyForm: FormState = {
   category: 'assinatura',
   cardId: 'none',
   dueDay: '',
+  startMonth: getMonthKey(),
+  endMonth: '',
   notes: '',
 };
 
@@ -58,10 +66,9 @@ export function ExpenseFormDialog({
   expense,
 }: ExpenseFormDialogProps) {
   const cards = useFinanceStore((state) => state.profile.cards);
-  const createExpense = useCreateExpense();
-  const updateExpense = useUpdateExpense();
+  const addExpense = useFinanceStore((state) => state.addExpense);
+  const updateExpense = useFinanceStore((state) => state.updateExpense);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const submitting = createExpense.isPending || updateExpense.isPending;
 
   useEffect(() => {
     if (!open) return;
@@ -73,6 +80,8 @@ export function ExpenseFormDialog({
         category: expense.category,
         cardId: expense.cardId ?? 'none',
         dueDay: expense.dueDay ? String(expense.dueDay) : '',
+        startMonth: expense.startMonth ?? getMonthKey(),
+        endMonth: expense.endMonth ?? '',
         notes: expense.notes ?? '',
       });
       return;
@@ -81,11 +90,19 @@ export function ExpenseFormDialog({
     setForm(emptyForm);
   }, [expense, open]);
 
-  async function handleSubmit(event: React.FormEvent) {
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     const amount = parseCurrencyInput(form.amount);
-    if (!form.name.trim() || amount <= 0) {
+    const dueDay = form.dueDay ? Number(form.dueDay) : undefined;
+    if (
+      !isValidName(form.name) ||
+      !isValidMoneyAmount(amount) ||
+      (dueDay !== undefined && !isValidDay(dueDay)) ||
+      !isValidMonth(form.startMonth) ||
+      (form.endMonth !== '' &&
+        (!isValidMonth(form.endMonth) || form.endMonth < form.startMonth))
+    ) {
       toast.error('Informe nome e um valor válido');
       return;
     }
@@ -95,26 +112,22 @@ export function ExpenseFormDialog({
       amount,
       category: form.category,
       frequency: 'mensal' as const,
-      cardId: form.cardId === 'none' ? null : form.cardId,
-      dueDay: form.dueDay ? Number(form.dueDay) : null,
-      notes: form.notes.trim() || null,
+      cardId: form.cardId === 'none' ? undefined : form.cardId,
+      dueDay,
+      startMonth: form.startMonth,
+      endMonth: form.endMonth || undefined,
+      notes: form.notes.trim() || undefined,
     };
 
-    try {
-      if (expense) {
-        await updateExpense.mutateAsync({ id: expense.id, payload });
-        toast.success('Despesa atualizada');
-      } else {
-        await createExpense.mutateAsync(payload);
-        toast.success('Despesa cadastrada');
-      }
-      onOpenChange(false);
-    } catch (err) {
-      const message = isAxiosError(err)
-        ? (err.response?.data?.error ?? 'Não foi possível salvar a despesa')
-        : 'Não foi possível salvar a despesa';
-      toast.error(message);
+    if (expense) {
+      updateExpense(expense.id, payload);
+      toast.success('Despesa atualizada');
+    } else {
+      addExpense(payload);
+      toast.success('Despesa cadastrada');
     }
+
+    onOpenChange(false);
   }
 
   return (
@@ -129,11 +142,8 @@ export function ExpenseFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={(event) => void handleSubmit(event)}
-          className='flex flex-col gap-4'
-        >
-          <div className='flex flex-col gap-2'>
+        <form onSubmit={handleSubmit} className='space-y-4'>
+          <div className='space-y-2'>
             <Label htmlFor='expense-name'>Nome</Label>
             <Input
               id='expense-name'
@@ -147,7 +157,7 @@ export function ExpenseFormDialog({
           </div>
 
           <div className='grid grid-cols-2 gap-3'>
-            <div className='flex flex-col gap-2'>
+            <div className='space-y-2'>
               <Label htmlFor='expense-amount'>Valor</Label>
               <Input
                 id='expense-amount'
@@ -162,7 +172,7 @@ export function ExpenseFormDialog({
                 className='rounded-lg'
               />
             </div>
-            <div className='flex flex-col gap-2'>
+            <div className='space-y-2'>
               <Label htmlFor='expense-due'>Dia vencimento</Label>
               <Input
                 id='expense-due'
@@ -183,7 +193,38 @@ export function ExpenseFormDialog({
           </div>
 
           <div className='grid grid-cols-2 gap-3'>
-            <div className='flex flex-col gap-2'>
+            <div className='space-y-2'>
+              <Label htmlFor='expense-start-month'>Início</Label>
+              <Input
+                id='expense-start-month'
+                type='month'
+                value={form.startMonth}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    startMonth: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='expense-end-month'>Fim (opcional)</Label>
+              <Input
+                id='expense-end-month'
+                type='month'
+                value={form.endMonth}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    endMonth: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className='grid grid-cols-2 gap-3'>
+            <div className='space-y-2'>
               <Label>Categoria</Label>
               <Select
                 value={form.category}
@@ -208,15 +249,13 @@ export function ExpenseFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className='flex flex-col gap-2'>
+            <div className='space-y-2'>
               <Label>Cartão</Label>
               <Select
                 value={form.cardId}
-                onValueChange={(value) => {
-                  if (value) {
-                    setForm((current) => ({ ...current, cardId: value }));
-                  }
-                }}
+                onValueChange={(value) =>
+                  setForm((current) => ({ ...current, cardId: value }))
+                }
               >
                 <SelectTrigger className='rounded-lg'>
                   <SelectValue placeholder='Opcional' />
@@ -233,7 +272,7 @@ export function ExpenseFormDialog({
             </div>
           </div>
 
-          <div className='flex flex-col gap-2'>
+          <div className='space-y-2'>
             <Label htmlFor='expense-notes'>Observações</Label>
             <Textarea
               id='expense-notes'
@@ -255,12 +294,10 @@ export function ExpenseFormDialog({
               variant='outline'
               className='rounded-lg'
               onClick={() => onOpenChange(false)}
-              disabled={submitting}
             >
               Cancelar
             </Button>
-            <Button type='submit' className='rounded-lg' disabled={submitting}>
-              {submitting ? <Spinner data-icon='inline-start' /> : null}
+            <Button type='submit' className='rounded-lg'>
               Salvar
             </Button>
           </DialogFooter>

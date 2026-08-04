@@ -1,9 +1,9 @@
-import { isAxiosError } from 'axios';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { IncomeFormDialog } from '@/components/income/income-form-dialog';
+import { DeleteConfirmDialog } from '@/components/layout/delete-confirm-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import {
   Table,
   TableBody,
@@ -25,7 +24,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { INCOME_FREQUENCY_LABELS, INCOME_TYPE_LABELS } from '@/data/labels';
-import { useDeleteEntry, useEntries } from '@/hooks/use-entries';
+import {
+  getIncomeOccurrenceDate,
+  getIncomeOccurrenceKey,
+  getMonthKey,
+  getSettlementStatus,
+  getTodayDateString,
+} from '@/lib/finance-calculations';
 import { formatCurrency } from '@/lib/format';
 import { selectMonthlyIncome, useFinanceStore } from '@/stores/finance-store';
 import type { Income, IncomeType } from '@/types/finance';
@@ -37,14 +42,18 @@ const typeColors: Record<IncomeType, string> = {
 };
 
 export function IncomePage() {
-  const { data: incomes = [], isLoading, isError } = useEntries();
-  const removeEntry = useDeleteEntry();
+  const incomes = useFinanceStore((state) => state.incomes);
+  const removeIncome = useFinanceStore((state) => state.removeIncome);
+  const settlements = useFinanceStore((state) => state.settlements);
+  const setIncomeStatus = useFinanceStore((state) => state.setIncomeStatus);
   const total = useFinanceStore(selectMonthlyIncome);
+  const currentMonth = getMonthKey();
 
   const [search, setSearch] = useState('');
   const [type, setType] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
+  const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
 
   const filtered = useMemo(() => {
     return incomes.filter((income) => {
@@ -66,16 +75,11 @@ export function IncomePage() {
     setDialogOpen(true);
   }
 
-  async function handleDelete(id: string, name: string) {
-    try {
-      await removeEntry.mutateAsync(id);
-      toast.success(`Entrada "${name}" removida`);
-    } catch (err) {
-      const message = isAxiosError(err)
-        ? (err.response?.data?.error ?? 'Não foi possível remover a entrada')
-        : 'Não foi possível remover a entrada';
-      toast.error(message);
-    }
+  function confirmDelete() {
+    if (!incomeToDelete) return;
+    removeIncome(incomeToDelete.id);
+    toast.success(`Entrada "${incomeToDelete.name}" removida`);
+    setIncomeToDelete(null);
   }
 
   return (
@@ -134,22 +138,7 @@ export function IncomePage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className='h-24 text-center'>
-                  <Spinner className='mx-auto size-5' />
-                </TableCell>
-              </TableRow>
-            ) : isError ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className='h-24 text-center text-destructive'
-                >
-                  Não foi possível carregar as entradas.
-                </TableCell>
-              </TableRow>
-            ) : filtered.length === 0 ? (
+            {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -161,40 +150,100 @@ export function IncomePage() {
             ) : (
               filtered.map((income) => (
                 <TableRow key={income.id}>
-                  <TableCell className='font-medium'>{income.name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant='outline'
-                      className={typeColors[income.type]}
-                    >
-                      {INCOME_TYPE_LABELS[income.type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className='text-muted-foreground'>
-                    {INCOME_FREQUENCY_LABELS[income.frequency]}
-                  </TableCell>
-                  <TableCell className='text-right font-semibold'>
-                    {formatCurrency(income.amount)}
-                  </TableCell>
-                  <TableCell className='text-right'>
-                    <div className='flex justify-end gap-1'>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        onClick={() => openEdit(income)}
-                      >
-                        <Pencil className='size-4' />
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        disabled={removeEntry.isPending}
-                        onClick={() => void handleDelete(income.id, income.name)}
-                      >
-                        <Trash2 className='size-4' />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {(() => {
+                    const occurrenceKey = getIncomeOccurrenceKey(
+                      income,
+                      currentMonth,
+                    );
+                    const occurrenceDate = getIncomeOccurrenceDate(
+                      income,
+                      currentMonth,
+                    );
+                    const status = getSettlementStatus(
+                      settlements,
+                      occurrenceKey,
+                      'income',
+                      occurrenceDate,
+                      getTodayDateString(),
+                    );
+                    return (
+                      <>
+                        <TableCell className='font-medium'>
+                          {income.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant='outline'
+                            className={typeColors[income.type]}
+                          >
+                            {INCOME_TYPE_LABELS[income.type]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className='text-muted-foreground'>
+                          {INCOME_FREQUENCY_LABELS[income.frequency]}
+                        </TableCell>
+                        <TableCell className='text-right font-semibold'>
+                          {formatCurrency(income.amount)}
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          <div className='flex justify-end gap-1'>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() =>
+                                setIncomeStatus(
+                                  occurrenceKey,
+                                  status === 'received'
+                                    ? 'pending'
+                                    : 'received',
+                                )
+                              }
+                              aria-label={`${status === 'received' ? 'Marcar pendente' : 'Marcar recebida'} ${income.name}`}
+                            >
+                              {status === 'received'
+                                ? 'Recebida'
+                                : status === 'pending' &&
+                                    occurrenceDate &&
+                                    occurrenceDate < getTodayDateString()
+                                  ? 'Em atraso'
+                                  : 'Pendente'}
+                            </Button>
+                            <Button
+                              size='sm'
+                              variant='ghost'
+                              onClick={() =>
+                                setIncomeStatus(
+                                  occurrenceKey,
+                                  status === 'cancelled'
+                                    ? 'pending'
+                                    : 'cancelled',
+                                )
+                              }
+                              aria-label={`${status === 'cancelled' ? 'Reabrir' : 'Cancelar'} ${income.name}`}
+                            >
+                              {status === 'cancelled' ? 'Reabrir' : 'Cancelar'}
+                            </Button>
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              onClick={() => openEdit(income)}
+                              aria-label={`Editar entrada ${income.name}`}
+                            >
+                              <Pencil className='size-4' />
+                            </Button>
+                            <Button
+                              variant='ghost'
+                              size='icon-sm'
+                              onClick={() => setIncomeToDelete(income)}
+                              aria-label={`Excluir entrada ${income.name}`}
+                            >
+                              <Trash2 className='size-4' />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    );
+                  })()}
                 </TableRow>
               ))
             )}
@@ -211,6 +260,14 @@ export function IncomePage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         income={editing}
+      />
+      <DeleteConfirmDialog
+        open={incomeToDelete !== null}
+        itemName={incomeToDelete?.name ?? ''}
+        onOpenChange={(open) => {
+          if (!open) setIncomeToDelete(null);
+        }}
+        onConfirm={confirmDelete}
       />
     </div>
   );

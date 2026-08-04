@@ -37,7 +37,15 @@ API em `http://localhost:8888` (`GET /health`)
 
 - UI dark neon (Dashboard, Perfil, Despesas, Entradas)
 - Dados locais via Zustand + localStorage
-- Sem login/auth (fase 2)
+- Login e registro usam a API de autenticação aceita no upstream
+
+## Dados financeiros locais
+
+- O financeiro ainda usa Zustand/localStorage, na chave canônica `demanage-finance-v2`.
+- A fonte de salário é uma entrada recorrente; a migração Prisma transfere o legado `User.salary` para `Entry` antes de remover a coluna.
+- A chave legada `demanage-finance` é importada apenas quando a chave canônica não contém um estado utilizável, sem reintroduzir dados de demonstração.
+- O estado persistido está na versão 4 e mantém recorrências date-only, snapshots legados como fallback, liquidações por ocorrência, faturas, parcelas, orçamentos e metas.
+- A rota `/planejamento` reúne faturas, compras parceladas, orçamentos e metas sem duplicar totais derivados no localStorage.
 
 ## Docs para agents
 

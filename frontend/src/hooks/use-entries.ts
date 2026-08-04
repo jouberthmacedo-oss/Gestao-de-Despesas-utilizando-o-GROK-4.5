@@ -1,32 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 
 import {
   createEntry,
   deleteEntry,
+  type EntryPayload,
   listEntries,
   updateEntry,
-  type EntryPayload,
 } from '@/lib/entries-api';
-import { useFinanceStore } from '@/stores/finance-store';
 
 export const ENTRIES_QUERY_KEY = ['entries'] as const;
 
 export function useEntries() {
-  const setIncomes = useFinanceStore((state) => state.setIncomes);
-
-  const query = useQuery({
+  return useQuery({
     queryKey: ENTRIES_QUERY_KEY,
     queryFn: listEntries,
   });
-
-  useEffect(() => {
-    if (query.data) {
-      setIncomes(query.data);
-    }
-  }, [query.data, setIncomes]);
-
-  return query;
 }
 
 export function useCreateEntry() {

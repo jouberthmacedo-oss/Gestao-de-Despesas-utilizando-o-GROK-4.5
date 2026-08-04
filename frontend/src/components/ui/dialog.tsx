@@ -1,11 +1,11 @@
 'use client';
 
-import * as React from 'react';
-import { Dialog as DialogPrimitive } from 'radix-ui';
-
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { XIcon } from 'lucide-react';
+import { Dialog as DialogPrimitive } from 'radix-ui';
+import * as React from 'react';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 function Dialog({
   ...props
@@ -56,7 +56,7 @@ function shouldIgnoreDialogDismiss(target: EventTarget | null) {
   // must not close the dialog.
   return Boolean(
     target.closest('[data-slot="select-content"]') ||
-      document.querySelector('[data-slot="select-content"]'),
+    document.querySelector('[data-slot="select-content"]'),
   );
 }
 

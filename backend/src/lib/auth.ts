@@ -3,8 +3,8 @@ import bcrypt from 'bcryptjs';
 import type { CookieOptions, Response } from 'express';
 import jwt, { type SignOptions } from 'jsonwebtoken';
 
-import type { PublicUser } from '@/types/auth';
-import { JWT_EXPIRES_IN, JWT_SECRET, NODE_ENV } from '@/utils/var';
+import type { PublicUser } from '../types/auth';
+import { JWT_EXPIRES_IN, JWT_SECRET, NODE_ENV } from '../utils/var';
 
 export const AUTH_COOKIE_NAME = 'demanage-token';
 
@@ -62,7 +62,6 @@ export function toPublicUser(user: User): PublicUser {
     id: user.id,
     name: user.name,
     email: user.email,
-    salary: Number(user.salary),
     notes: user.notes,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

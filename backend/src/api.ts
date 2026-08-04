@@ -1,8 +1,8 @@
 import { Router } from 'express';
 
+import appsRoutes from './routes/app/apps/index';
 import authRoutes from './routes/auth';
 import healthRoutes from './routes/health';
-import appsRoutes from './routes/app/apps/index';
 
 const api = Router();
 

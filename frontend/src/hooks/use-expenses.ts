@@ -1,32 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 
 import {
   createExpense,
   deleteExpense,
+  type ExpensePayload,
   listExpenses,
   updateExpense,
-  type ExpensePayload,
 } from '@/lib/expenses-api';
-import { useFinanceStore } from '@/stores/finance-store';
 
 export const EXPENSES_QUERY_KEY = ['expenses'] as const;
 
 export function useExpenses() {
-  const setExpenses = useFinanceStore((state) => state.setExpenses);
-
-  const query = useQuery({
+  return useQuery({
     queryKey: EXPENSES_QUERY_KEY,
     queryFn: listExpenses,
   });
-
-  useEffect(() => {
-    if (query.data) {
-      setExpenses(query.data);
-    }
-  }, [query.data, setExpenses]);
-
-  return query;
 }
 
 export function useCreateExpense() {

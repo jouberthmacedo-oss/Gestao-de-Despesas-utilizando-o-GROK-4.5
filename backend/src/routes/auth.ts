@@ -7,9 +7,9 @@ import {
   setAuthCookie,
   signAuthToken,
   toPublicUser,
-} from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/middlewares/require-auth';
+} from '../lib/auth';
+import { prisma } from '../lib/prisma';
+import { requireAuth } from '../middlewares/require-auth';
 
 const authRoutes = Router();
 

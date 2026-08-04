@@ -25,8 +25,3 @@ src/generated
 # Coverage
 coverage
 /src/generated/prisma
-
-# Agent tooling (symlinks break git add on Windows)
-.claude/
-.agents/
-.windsurf/

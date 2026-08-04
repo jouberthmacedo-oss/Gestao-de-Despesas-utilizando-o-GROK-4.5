@@ -46,7 +46,9 @@ export function AppTopbar() {
         <DropdownMenuContent align='end' className='w-56'>
           <DropdownMenuLabel>
             <div className='flex flex-col gap-0.5'>
-              <span className='truncate text-sm font-medium'>{displayName}</span>
+              <span className='truncate text-sm font-medium'>
+                {displayName}
+              </span>
               {user?.email ? (
                 <span className='truncate text-xs text-muted-foreground'>
                   {user.email}

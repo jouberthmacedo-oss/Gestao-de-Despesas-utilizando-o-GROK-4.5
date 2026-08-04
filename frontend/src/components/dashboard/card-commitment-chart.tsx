@@ -7,6 +7,14 @@ import {
   Tooltip,
 } from 'recharts';
 
+import {
+  getExpenseOccurrenceDate,
+  getExpenseOccurrenceKey,
+  getMonthKey,
+  getSettlementStatus,
+  getTodayDateString,
+  isExpenseActive,
+} from '@/lib/finance-calculations';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 
@@ -45,13 +53,29 @@ function commitmentColor(percent: number) {
 export function CardCommitmentChart() {
   const cards = useFinanceStore((state) => state.profile.cards);
   const expenses = useFinanceStore((state) => state.expenses);
+  const settlements = useFinanceStore((state) => state.settlements);
+  const monthKey = getMonthKey();
+  const today = getTodayDateString();
 
   const data = cards
     .filter((card) => card.limit != null && card.limit > 0)
     .map((card) => {
       const committed = expenses
-        .filter((expense) => expense.cardId === card.id)
-        .reduce((sum, expense) => sum + expense.amount, 0);
+        .filter(
+          (expense) =>
+            expense.cardId === card.id && isExpenseActive(expense, monthKey),
+        )
+        .reduce((sum, expense) => {
+          const occurrenceKey = getExpenseOccurrenceKey(expense, monthKey);
+          const status = getSettlementStatus(
+            settlements,
+            occurrenceKey,
+            'expense',
+            getExpenseOccurrenceDate(expense, monthKey),
+            today,
+          );
+          return status === 'cancelled' ? sum : sum + expense.amount;
+        }, 0);
       const percent = (committed / (card.limit as number)) * 100;
 
       return {
@@ -67,7 +91,8 @@ export function CardCommitmentChart() {
   if (data.length === 0) {
     return (
       <div className='flex h-72 items-center justify-center text-sm text-muted-foreground'>
-        Cadastre cartões com limite e vincule despesas para ver o comprometimento.
+        Cadastre cartões com limite e vincule despesas para ver o
+        comprometimento.
       </div>
     );
   }
@@ -93,7 +118,6 @@ export function CardCommitmentChart() {
               dataKey='display'
               background={{ fill: 'rgba(255,255,255,0.06)' }}
               cornerRadius={6}
-              clockWise
             >
               {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.fill} />

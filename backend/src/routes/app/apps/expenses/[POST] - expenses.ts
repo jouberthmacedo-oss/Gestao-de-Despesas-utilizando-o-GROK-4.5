@@ -1,37 +1,57 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 
-import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/middlewares/require-auth';
+import { prisma } from '../../../../lib/prisma';
+import { requireAuth } from '../../../../middlewares/require-auth';
+import {
+  asObject,
+  hasOwn,
+  isExpenseCategory,
+  parseMoney,
+  parseName,
+  parseNullableCardId,
+  parseNullableDay,
+  parseNullableNotes,
+  serializeExpense,
+} from '../validation';
 
 const router = Router();
 
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+router.post('/', requireAuth, async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+
+  const body = asObject(req.body);
+  const name = body ? parseName(body.name) : undefined;
+  const amount = body ? parseMoney(body.amount) : undefined;
+  const category =
+    body && isExpenseCategory(body.category) ? body.category : undefined;
+  const cardId =
+    body && hasOwn(body, 'cardId') ? parseNullableCardId(body.cardId) : null;
+  const dueDay =
+    body && hasOwn(body, 'dueDay') ? parseNullableDay(body.dueDay) : null;
+  const notes =
+    body && hasOwn(body, 'notes') ? parseNullableNotes(body.notes) : null;
+  const frequency = body?.frequency ?? 'mensal';
+
+  if (
+    !body ||
+    !name ||
+    !amount ||
+    !category ||
+    frequency !== 'mensal' ||
+    (hasOwn(body, 'cardId') && cardId === undefined) ||
+    (hasOwn(body, 'dueDay') && dueDay === undefined) ||
+    (hasOwn(body, 'notes') && notes === undefined)
+  ) {
+    return res.status(400).json({ error: 'Dados da despesa inválidos' });
+  }
+
   try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Não autenticado' });
-    }
-
-    const { name, amount, category, frequency, cardId, dueDay, notes } =
-      req.body;
-
-    if (!name || amount == null || !category) {
-      return res.status(400).json({
-        error: 'Campos obrigatórios: name, amount, category',
-      });
-    }
-
-    const resolvedCardId = cardId || null;
-
-    if (resolvedCardId) {
+    if (cardId) {
       const card = await prisma.card.findFirst({
-        where: { id: resolvedCardId, userId },
+        where: { id: cardId, userId },
       });
-
-      if (!card) {
-        return res.status(400).json({ error: 'Cartão inválido' });
-      }
+      if (!card) return res.status(400).json({ error: 'Cartão inválido' });
     }
 
     const expense = await prisma.expense.create({
@@ -40,17 +60,15 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         name,
         amount,
         category,
-        frequency: frequency ?? 'mensal',
-        cardId: resolvedCardId,
-        dueDay: dueDay ?? null,
-        notes: notes || null,
+        frequency,
+        cardId,
+        dueDay,
+        notes,
       },
     });
-
-    return res.status(201).json(expense);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(201).json(serializeExpense(expense));
+  } catch {
+    return res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 

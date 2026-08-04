@@ -1,15 +1,41 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseDateOnly, parseDay, parseMoney, parseName } from './validation';
+import {
+  hasOnlyAllowedFields,
+  parseDateOnly,
+  parseDay,
+  parseMoney,
+  parseName,
+} from './validation';
 
 test('route validation trims names and accepts only positive two-decimal money', () => {
   assert.equal(parseName('  Cartão  '), 'Cartão');
   assert.equal(parseMoney('123.45'), '123.45');
   assert.equal(parseMoney(10), '10.00');
+  assert.equal(parseMoney('9999999999.99'), '9999999999.99');
+  assert.equal(parseMoney('10000000000.00'), undefined);
   assert.equal(parseMoney('123.456'), undefined);
   assert.equal(parseMoney('-1.00'), undefined);
   assert.equal(parseMoney(0), undefined);
+});
+
+test('PATCH validation accepts only declared fields', () => {
+  assert.equal(
+    hasOnlyAllowedFields({ name: 'Cartão' }, ['name', 'limit']),
+    true,
+  );
+  assert.equal(
+    hasOnlyAllowedFields({ unknown: 'value' }, ['name', 'limit']),
+    false,
+  );
+  assert.equal(
+    hasOnlyAllowedFields({ name: 'Cartão', unknown: 'value' }, [
+      'name',
+      'limit',
+    ]),
+    false,
+  );
 });
 
 test('route validation enforces calendar day and date-only boundaries', () => {

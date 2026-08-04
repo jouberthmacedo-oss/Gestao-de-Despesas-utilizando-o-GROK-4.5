@@ -86,6 +86,33 @@ test(
         { method: 'PATCH', body: '{}' },
       );
       assert.equal(emptyCardPatch.response.status, 400);
+      const unknownCardPatch = await requestJson(
+        baseUrl,
+        `/cards/${cardId}`,
+        cookieOne,
+        { method: 'PATCH', body: JSON.stringify({ owner: 'other-user' }) },
+      );
+      assert.equal(unknownCardPatch.response.status, 400);
+      const validCardPatch = await requestJson(
+        baseUrl,
+        `/cards/${cardId}`,
+        cookieOne,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ name: 'Cartão atualizado' }),
+        },
+      );
+      assert.equal(validCardPatch.response.status, 200);
+      assert.equal(validCardPatch.body.name, 'Cartão atualizado');
+
+      const oversizedCard = await requestJson(baseUrl, '/cards', cookieOne, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Limite inválido',
+          limit: '10000000000.00',
+        }),
+      });
+      assert.equal(oversizedCard.response.status, 400);
 
       const createdExpense = await requestJson(
         baseUrl,
@@ -121,6 +148,36 @@ test(
         },
       );
       assert.equal(invalidExpense.response.status, 400);
+      const oversizedExpense = await requestJson(
+        baseUrl,
+        '/expenses',
+        cookieOne,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'Despesa grande',
+            amount: '10000000000.00',
+            category: 'outro',
+          }),
+        },
+      );
+      assert.equal(oversizedExpense.response.status, 400);
+
+      const unknownExpensePatch = await requestJson(
+        baseUrl,
+        `/expenses/${expenseId}`,
+        cookieOne,
+        { method: 'PATCH', body: JSON.stringify({ owner: 'other-user' }) },
+      );
+      assert.equal(unknownExpensePatch.response.status, 400);
+      const validExpensePatch = await requestJson(
+        baseUrl,
+        `/expenses/${expenseId}`,
+        cookieOne,
+        { method: 'PATCH', body: JSON.stringify({ notes: 'Atualizada' }) },
+      );
+      assert.equal(validExpensePatch.response.status, 200);
+      assert.equal(validExpensePatch.body.notes, 'Atualizada');
 
       const foreignCardReference = await requestJson(
         baseUrl,
@@ -173,6 +230,35 @@ test(
         }),
       });
       assert.equal(invalidEntry.response.status, 400);
+      const oversizedEntry = await requestJson(baseUrl, '/entries', cookieOne, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Entrada grande',
+          amount: '10000000000.00',
+          type: 'outro',
+          frequency: 'mensal',
+        }),
+      });
+      assert.equal(oversizedEntry.response.status, 400);
+
+      const unknownEntryPatch = await requestJson(
+        baseUrl,
+        `/entries/${entryId}`,
+        cookieOne,
+        { method: 'PATCH', body: JSON.stringify({ owner: 'other-user' }) },
+      );
+      assert.equal(unknownEntryPatch.response.status, 400);
+      const validEntryPatch = await requestJson(
+        baseUrl,
+        `/entries/${entryId}`,
+        cookieOne,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ name: 'Freela atualizado' }),
+        },
+      );
+      assert.equal(validEntryPatch.response.status, 200);
+      assert.equal(validEntryPatch.body.name, 'Freela atualizado');
 
       const otherEntries = await requestJson(baseUrl, '/entries', cookieTwo);
       assert.deepEqual(otherEntries.body, []);

@@ -6,7 +6,7 @@ import {
   getIncomeOccurrenceKey,
   getMonthKey,
 } from '@/lib/finance-calculations';
-import { useFinanceStore } from '@/stores/finance-store';
+import { switchFinanceUser, useFinanceStore } from '@/stores/finance-store';
 
 test('finance store starts empty and rejects invalid active state', () => {
   useFinanceStore.getState().clearAll();
@@ -102,4 +102,20 @@ test('installment edits are blocked after settlement and goals recalculate', () 
   useFinanceStore.getState().removeContribution(contribution.id);
   assert.equal(useFinanceStore.getState().goals[0]?.status, 'active');
   useFinanceStore.getState().clearAll();
+});
+
+test('finance state is unloaded on logout and isolated by user id', () => {
+  switchFinanceUser('user-a');
+  useFinanceStore.getState().clearAll();
+  useFinanceStore.getState().addCard({ name: 'Cartão A' });
+
+  switchFinanceUser(null);
+  assert.deepEqual(useFinanceStore.getState().profile.cards, []);
+
+  switchFinanceUser('user-b');
+  assert.deepEqual(useFinanceStore.getState().profile.cards, []);
+
+  switchFinanceUser('user-a');
+  assert.equal(useFinanceStore.getState().profile.cards[0]?.name, 'Cartão A');
+  switchFinanceUser(null);
 });

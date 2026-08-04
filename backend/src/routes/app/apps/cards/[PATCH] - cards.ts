@@ -4,6 +4,7 @@ import { prisma } from '../../../../lib/prisma';
 import { requireAuth } from '../../../../middlewares/require-auth';
 import {
   asObject,
+  hasOnlyAllowedFields,
   hasOwn,
   parseName,
   parseNullableDay,
@@ -12,13 +13,18 @@ import {
 } from '../validation';
 
 const router = Router();
+const CARD_PATCH_FIELDS = ['name', 'limit', 'closingDay', 'dueDay'] as const;
 
 router.patch('/:id', requireAuth, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Não autenticado' });
 
   const body = asObject(req.body);
-  if (!body || Object.keys(body).length === 0) {
+  if (
+    !body ||
+    Object.keys(body).length === 0 ||
+    !hasOnlyAllowedFields(body, CARD_PATCH_FIELDS)
+  ) {
     return res.status(400).json({ error: 'Informe ao menos um campo' });
   }
 

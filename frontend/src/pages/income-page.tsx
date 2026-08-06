@@ -1,10 +1,12 @@
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Landmark, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { IncomeFormDialog } from '@/components/income/income-form-dialog';
 import { DeleteConfirmDialog } from '@/components/layout/delete-confirm-dialog';
 import { PageHeader } from '@/components/layout/page-header';
+import { PageHero } from '@/components/layout/page-hero';
+import { SectionPanel } from '@/components/layout/section-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +67,11 @@ export function IncomePage() {
     });
   }, [incomes, search, type]);
 
+  const filteredTotal = useMemo(
+    () => filtered.reduce((sum, income) => sum + income.amount, 0),
+    [filtered],
+  );
+
   function openCreate() {
     setEditing(null);
     setDialogOpen(true);
@@ -83,7 +90,7 @@ export function IncomePage() {
   }
 
   return (
-    <div>
+    <div className='space-y-6'>
       <title>Entradas | deManage</title>
       <PageHeader
         title='Entradas'
@@ -96,165 +103,194 @@ export function IncomePage() {
         }
       />
 
-      <div className='mb-4 flex flex-col gap-3 sm:flex-row'>
-        <div className='relative flex-1'>
-          <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder='Buscar entradas por nome...'
-            className='rounded-lg pl-9'
-          />
+      <PageHero
+        eyebrow='Receitas'
+        title={`${incomes.length} entrada${incomes.length === 1 ? '' : 's'}`}
+        description='Acompanhe as fontes recorrentes e avulsas que sustentam o mês.'
+      >
+        <div className='grid gap-3 sm:grid-cols-2'>
+          <div className='rounded-xl border border-border bg-black/25 p-4'>
+            <p className='text-xs text-muted-foreground'>Total recorrente</p>
+            <p className='mt-2 text-2xl font-semibold text-neon-green'>
+              {formatCurrency(total)}
+            </p>
+          </div>
+          <div className='rounded-xl border border-border bg-black/25 p-4'>
+            <p className='text-xs text-muted-foreground'>Resultado do filtro</p>
+            <p className='mt-2 text-2xl font-semibold'>
+              {formatCurrency(filteredTotal)}
+            </p>
+          </div>
         </div>
-        <Select
-          value={type}
-          onValueChange={(value) => {
-            if (value) setType(value);
-          }}
-        >
-          <SelectTrigger className='w-full rounded-lg sm:w-48'>
-            <SelectValue placeholder='Tipo' />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='all'>Todos</SelectItem>
-            {Object.entries(INCOME_TYPE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      </PageHero>
 
-      <div className='overflow-hidden rounded-xl border border-border'>
-        <Table>
-          <TableHeader>
-            <TableRow className='hover:bg-transparent'>
-              <TableHead>Nome</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Frequência</TableHead>
-              <TableHead className='text-right'>Valor</TableHead>
-              <TableHead className='w-24 text-right'>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className='h-24 text-center text-muted-foreground'
-                >
-                  Nenhuma entrada encontrada.
-                </TableCell>
+      <SectionPanel>
+        <div className='mb-4 flex flex-col gap-3 sm:flex-row'>
+          <div className='relative flex-1'>
+            <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder='Buscar entradas por nome...'
+              className='rounded-lg pl-9'
+            />
+          </div>
+          <Select
+            value={type}
+            onValueChange={(value) => {
+              if (value) setType(value);
+            }}
+          >
+            <SelectTrigger className='w-full rounded-lg sm:w-48'>
+              <SelectValue placeholder='Tipo' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='all'>Todos</SelectItem>
+              {Object.entries(INCOME_TYPE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className='overflow-x-auto rounded-xl border border-border bg-black/15'>
+          <Table>
+            <TableHeader>
+              <TableRow className='hover:bg-transparent'>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Frequência</TableHead>
+                <TableHead className='text-right'>Valor</TableHead>
+                <TableHead className='w-64 text-right'>Ações</TableHead>
               </TableRow>
-            ) : (
-              filtered.map((income) => (
-                <TableRow key={income.id}>
-                  {(() => {
-                    const occurrenceKey = getIncomeOccurrenceKey(
-                      income,
-                      currentMonth,
-                    );
-                    const occurrenceDate = getIncomeOccurrenceDate(
-                      income,
-                      currentMonth,
-                    );
-                    const status = getSettlementStatus(
-                      settlements,
-                      occurrenceKey,
-                      'income',
-                      occurrenceDate,
-                      getTodayDateString(),
-                    );
-                    return (
-                      <>
-                        <TableCell className='font-medium'>
-                          {income.name}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant='outline'
-                            className={typeColors[income.type]}
-                          >
-                            {INCOME_TYPE_LABELS[income.type]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className='text-muted-foreground'>
-                          {INCOME_FREQUENCY_LABELS[income.frequency]}
-                        </TableCell>
-                        <TableCell className='text-right font-semibold'>
-                          {formatCurrency(income.amount)}
-                        </TableCell>
-                        <TableCell className='text-right'>
-                          <div className='flex justify-end gap-1'>
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              onClick={() =>
-                                setIncomeStatus(
-                                  occurrenceKey,
-                                  status === 'received'
-                                    ? 'pending'
-                                    : 'received',
-                                )
-                              }
-                              aria-label={`${status === 'received' ? 'Marcar pendente' : 'Marcar recebida'} ${income.name}`}
-                            >
-                              {status === 'received'
-                                ? 'Recebida'
-                                : status === 'pending' &&
-                                    occurrenceDate &&
-                                    occurrenceDate < getTodayDateString()
-                                  ? 'Em atraso'
-                                  : 'Pendente'}
-                            </Button>
-                            <Button
-                              size='sm'
-                              variant='ghost'
-                              onClick={() =>
-                                setIncomeStatus(
-                                  occurrenceKey,
-                                  status === 'cancelled'
-                                    ? 'pending'
-                                    : 'cancelled',
-                                )
-                              }
-                              aria-label={`${status === 'cancelled' ? 'Reabrir' : 'Cancelar'} ${income.name}`}
-                            >
-                              {status === 'cancelled' ? 'Reabrir' : 'Cancelar'}
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon-sm'
-                              onClick={() => openEdit(income)}
-                              aria-label={`Editar entrada ${income.name}`}
-                            >
-                              <Pencil className='size-4' />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon-sm'
-                              onClick={() => setIncomeToDelete(income)}
-                              aria-label={`Excluir entrada ${income.name}`}
-                            >
-                              <Trash2 className='size-4' />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </>
-                    );
-                  })()}
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className='h-40'>
+                    <div className='flex flex-col items-center justify-center gap-2 text-center'>
+                      <div className='flex size-12 items-center justify-center rounded-2xl bg-neon-green/10'>
+                        <Landmark className='size-6 text-neon-green' />
+                      </div>
+                      <p className='font-medium'>Nenhuma entrada encontrada</p>
+                      <p className='text-sm text-muted-foreground'>
+                        Ajuste o filtro ou cadastre uma nova fonte de renda.
+                      </p>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                filtered.map((income) => {
+                  const occurrenceKey = getIncomeOccurrenceKey(
+                    income,
+                    currentMonth,
+                  );
+                  const occurrenceDate = getIncomeOccurrenceDate(
+                    income,
+                    currentMonth,
+                  );
+                  const status = getSettlementStatus(
+                    settlements,
+                    occurrenceKey,
+                    'income',
+                    occurrenceDate,
+                    getTodayDateString(),
+                  );
 
-      <p className='mt-3 text-sm text-muted-foreground'>
-        {filtered.length} entrada{filtered.length === 1 ? '' : 's'} •{' '}
-        {formatCurrency(total)} / mês (recorrentes)
-      </p>
+                  return (
+                    <TableRow key={income.id}>
+                      <TableCell className='font-medium'>
+                        {income.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant='outline'
+                          className={typeColors[income.type]}
+                        >
+                          {INCOME_TYPE_LABELS[income.type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='text-muted-foreground'>
+                        {INCOME_FREQUENCY_LABELS[income.frequency]}
+                      </TableCell>
+                      <TableCell className='text-right font-semibold'>
+                        {formatCurrency(income.amount)}
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <div className='flex justify-end gap-1'>
+                          <Button
+                            size='sm'
+                            variant='secondary'
+                            className='rounded-lg'
+                            onClick={() =>
+                              setIncomeStatus(
+                                occurrenceKey,
+                                status === 'received'
+                                  ? 'pending'
+                                  : 'received',
+                              )
+                            }
+                            aria-label={`${status === 'received' ? 'Marcar pendente' : 'Marcar recebida'} ${income.name}`}
+                          >
+                            {status === 'received'
+                              ? 'Recebida'
+                              : status === 'pending' &&
+                                  occurrenceDate &&
+                                  occurrenceDate < getTodayDateString()
+                                ? 'Em atraso'
+                                : 'Pendente'}
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant='ghost'
+                            onClick={() =>
+                              setIncomeStatus(
+                                occurrenceKey,
+                                status === 'cancelled'
+                                  ? 'pending'
+                                  : 'cancelled',
+                              )
+                            }
+                            aria-label={`${status === 'cancelled' ? 'Reabrir' : 'Cancelar'} ${income.name}`}
+                          >
+                            {status === 'cancelled' ? 'Reabrir' : 'Cancelar'}
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            onClick={() => openEdit(income)}
+                            aria-label={`Editar entrada ${income.name}`}
+                          >
+                            <Pencil className='size-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            onClick={() => setIncomeToDelete(income)}
+                            aria-label={`Excluir entrada ${income.name}`}
+                          >
+                            <Trash2 className='size-4' />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <p className='mt-3 text-sm text-muted-foreground'>
+          {filtered.length} entrada{filtered.length === 1 ? '' : 's'} •{' '}
+          {formatCurrency(filteredTotal)} filtrado
+          {filteredTotal !== total
+            ? ` · ${formatCurrency(total)} recorrente`
+            : ' / mês (recorrentes)'}
+        </p>
+      </SectionPanel>
 
       <IncomeFormDialog
         open={dialogOpen}

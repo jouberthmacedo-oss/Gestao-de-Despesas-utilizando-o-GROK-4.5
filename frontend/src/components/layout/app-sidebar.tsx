@@ -24,8 +24,11 @@ const navItems = [
 
 export function AppSidebar() {
   return (
-    <aside className='sticky top-0 flex h-screen w-14 shrink-0 flex-col items-center border-r border-border bg-background py-4'>
-      <nav className='flex flex-1 flex-col items-center gap-2'>
+    <aside className='sticky top-0 flex h-screen w-16 shrink-0 flex-col items-center border-r border-border bg-card/20 pb-5'>
+      <div className='flex w-full items-center justify-center border-b border-border py-4'>
+        <img src='/favicon.svg' alt='deManage' className='size-9' />
+      </div>
+      <nav className='flex flex-1 flex-col items-center gap-2 pt-4'>
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -37,8 +40,9 @@ export function AppSidebar() {
                   end={item.end}
                   className={({ isActive }) =>
                     cn(
-                      'flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-                      isActive && 'bg-accent text-foreground',
+                      'flex size-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                      isActive &&
+                        'relative bg-accent text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)] before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-neon-amber',
                     )
                   }
                 >

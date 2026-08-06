@@ -29,42 +29,47 @@ export function AppTopbar() {
   }
 
   return (
-    <header className='flex h-14 shrink-0 items-center justify-between border-b border-border px-6 md:px-8'>
-      <div className='text-sm font-medium tracking-tight text-foreground'>
-        deManage
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant='ghost' size='icon-sm' className='rounded-full'>
-            <Avatar className='size-8'>
-              <AvatarFallback className='bg-accent text-xs text-foreground'>
-                {getInitials(displayName)}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align='end' className='w-56'>
-          <DropdownMenuLabel>
-            <div className='flex flex-col gap-0.5'>
-              <span className='truncate text-sm font-medium'>
+    <header className='flex h-14 shrink-0 justify-end border-b border-border bg-background/80 px-6 backdrop-blur md:px-8'>
+      <div className='flex items-center gap-2'>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              className='h-9 gap-2 rounded-full border border-border bg-card/40 px-2 pr-3'
+            >
+              <Avatar className='size-7'>
+                <AvatarFallback className='bg-accent text-[11px] text-foreground'>
+                  {getInitials(displayName)}
+                </AvatarFallback>
+              </Avatar>
+              <span className='hidden max-w-32 truncate text-sm sm:inline'>
                 {displayName}
               </span>
-              {user?.email ? (
-                <span className='truncate text-xs text-muted-foreground'>
-                  {user.email}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end' className='w-56'>
+            <DropdownMenuLabel>
+              <div className='flex flex-col gap-0.5'>
+                <span className='truncate text-sm font-medium'>
+                  {displayName}
                 </span>
-              ) : null}
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => void handleLogout()}>
-              <LogOut data-icon='inline-start' />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                {user?.email ? (
+                  <span className='truncate text-xs text-muted-foreground'>
+                    {user.email}
+                  </span>
+                ) : null}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => void handleLogout()}>
+                <LogOut data-icon='inline-start' />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }

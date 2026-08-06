@@ -6,7 +6,6 @@ import {
   UserRound,
 } from 'lucide-react';
 import { NavLink } from 'react-router';
-import logo from '../../../public/favicon.svg';
 
 import {
   Tooltip,
@@ -27,7 +26,7 @@ export function AppSidebar() {
   return (
     <aside className='sticky top-0 flex h-screen w-16 shrink-0 flex-col items-center border-r border-border bg-card/20 pb-5'>
       <div className='flex w-full items-center justify-center border-b border-border py-4'>
-        <img src={logo} alt='deManage' className='size-9' />
+        <img src='/favicon.svg' alt='deManage' className='size-9' />
       </div>
       <nav className='flex flex-1 flex-col items-center gap-2 pt-4'>
         {navItems.map((item) => {
@@ -41,11 +40,9 @@ export function AppSidebar() {
                   end={item.end}
                   className={({ isActive }) =>
                     cn(
-                      'relative flex size-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                      'flex size-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
                       isActive &&
-                        'bg-accent text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)]',
-                      isActive &&
-                        'before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-neon-amber',
+                        'relative bg-accent text-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.06)] before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-neon-amber',
                     )
                   }
                 >

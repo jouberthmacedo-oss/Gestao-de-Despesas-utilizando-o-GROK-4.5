@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 
 import { api } from '@/lib/api';
+import { FINANCE_QUERY_ROOT_KEY } from '@/lib/finance-query-keys';
+import { queryClient } from '@/lib/query-client';
+import { switchFinanceUser } from '@/stores/finance-store';
 import type { AuthUser } from '@/types/auth';
 
 type AuthState = {
@@ -40,34 +43,36 @@ function getAuthUser(value: unknown) {
   return user;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+function clearFinanceQueryCache() {
+  queryClient.removeQueries({ queryKey: FINANCE_QUERY_ROOT_KEY });
+  queryClient.removeQueries({ queryKey: ['cards'] });
+  queryClient.removeQueries({ queryKey: ['expenses'] });
+  queryClient.removeQueries({ queryKey: ['entries'] });
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
 
-  setUser: (user) =>
+  setUser: (user) => {
+    if (get().user?.id !== user?.id) clearFinanceQueryCache();
+    switchFinanceUser(user?.id ?? null);
     set({
       user,
       isAuthenticated: Boolean(user),
       isLoading: false,
-    }),
+    });
+  },
 
   fetchMe: async () => {
     try {
       const { data } = await api.get<{ user: AuthUser }>('/auth/me');
       const user = getAuthUser(data);
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      get().setUser(user);
       return user;
     } catch {
-      set({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      get().setUser(null);
       return null;
     }
   },
@@ -78,11 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       password,
     });
     const user = getAuthUser(data);
-    set({
-      user,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    get().setUser(user);
     return user;
   },
 
@@ -93,11 +94,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       password,
     });
     const user = getAuthUser(data);
-    set({
-      user,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    get().setUser(user);
     return user;
   },
 
@@ -105,11 +102,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await api.post('/auth/logout');
     } finally {
-      set({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      get().setUser(null);
     }
   },
 }));

@@ -3,8 +3,11 @@ import test from 'node:test';
 
 import { migrateFinanceState } from '@/lib/finance-migration';
 import {
+  claimLegacyFinanceState,
   createFinanceStorage,
   FINANCE_STORAGE_KEY,
+  getClaimableLegacyFinanceState,
+  getFinanceStorageKey,
   LEGACY_FINANCE_STORAGE_KEY,
 } from '@/lib/finance-storage';
 import { parseCurrencyInput } from '@/lib/format';
@@ -111,30 +114,49 @@ test('malformed optional fields do not discard unrelated valid records', () => {
   assert.equal('cardId' in migrated.expenses[0], false);
 });
 
-test('canonical storage wins over usable legacy storage and legacy is retained', () => {
-  const canonical = JSON.stringify({ state: { profile: { name: 'Atual' } } });
-  const legacy = JSON.stringify({ state: { profile: { name: 'Legado' } } });
+test('unscoped version four storage is never hydrated automatically', () => {
+  const legacy = JSON.stringify({
+    state: { profile: { name: 'Legado' } },
+    version: 4,
+  });
   const raw = makeStorage({
-    [FINANCE_STORAGE_KEY]: canonical,
+    [FINANCE_STORAGE_KEY]: legacy,
     [LEGACY_FINANCE_STORAGE_KEY]: legacy,
   });
   const storage = createFinanceStorage(raw);
 
-  assert.equal(storage.getItem(FINANCE_STORAGE_KEY), canonical);
-  storage.setItem(FINANCE_STORAGE_KEY, canonical);
+  assert.equal(storage.getItem(FINANCE_STORAGE_KEY), null);
+  storage.setUserId('user-a');
+  assert.equal(storage.getItem(FINANCE_STORAGE_KEY), null);
+  assert.ok(getClaimableLegacyFinanceState(raw));
+  storage.setItem(FINANCE_STORAGE_KEY, legacy);
+  assert.equal(raw.getItem(getFinanceStorageKey('user-a')), legacy);
   assert.equal(raw.getItem(LEGACY_FINANCE_STORAGE_KEY), legacy);
 });
 
-test('legacy storage is selected when canonical state is unusable', () => {
-  const legacy = JSON.stringify({ state: { profile: { name: 'Legado' } } });
+test('legacy claim copies version four data once and retains the backup', () => {
+  const legacy = JSON.stringify({
+    state: { profile: { name: 'Legado' } },
+    version: 4,
+  });
+  const raw = makeStorage({ [FINANCE_STORAGE_KEY]: legacy });
+
+  assert.equal(claimLegacyFinanceState(raw, 'user-a'), true);
+  assert.equal(raw.getItem(getFinanceStorageKey('user-a')), legacy);
+  assert.equal(raw.getItem(FINANCE_STORAGE_KEY), legacy);
+  assert.equal(claimLegacyFinanceState(raw, 'user-b'), false);
+  assert.equal(getClaimableLegacyFinanceState(raw), null);
+});
+
+test('unversioned legacy storage is not offered for an implicit claim', () => {
   const storage = createFinanceStorage(
     makeStorage({
-      [FINANCE_STORAGE_KEY]: '{malformed',
-      [LEGACY_FINANCE_STORAGE_KEY]: legacy,
+      [FINANCE_STORAGE_KEY]: JSON.stringify({ state: { profile: {} } }),
     }),
   );
 
-  assert.equal(storage.getItem(FINANCE_STORAGE_KEY), legacy);
+  storage.setUserId('user-a');
+  assert.equal(storage.getItem(FINANCE_STORAGE_KEY), null);
 });
 
 test('version four migration is idempotent and initializes new collections without mock data', () => {

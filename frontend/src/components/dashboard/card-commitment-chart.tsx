@@ -8,13 +8,10 @@ import {
 } from 'recharts';
 
 import {
-  getExpenseOccurrenceDate,
-  getExpenseOccurrenceKey,
-  getMonthKey,
-  getSettlementStatus,
-  getTodayDateString,
-  isExpenseActive,
-} from '@/lib/finance-calculations';
+  buildCardCommitmentData,
+  getWeightedCardCommitmentPercentage,
+} from '@/lib/card-commitment';
+import { getMonthKey, getTodayDateString } from '@/lib/finance-calculations';
 import { formatCurrency, formatPercent } from '@/lib/format';
 import { useFinanceStore } from '@/stores/finance-store';
 
@@ -57,36 +54,13 @@ export function CardCommitmentChart() {
   const monthKey = getMonthKey();
   const today = getTodayDateString();
 
-  const data = cards
-    .filter((card) => card.limit != null && card.limit > 0)
-    .map((card) => {
-      const committed = expenses
-        .filter(
-          (expense) =>
-            expense.cardId === card.id && isExpenseActive(expense, monthKey),
-        )
-        .reduce((sum, expense) => {
-          const occurrenceKey = getExpenseOccurrenceKey(expense, monthKey);
-          const status = getSettlementStatus(
-            settlements,
-            occurrenceKey,
-            'expense',
-            getExpenseOccurrenceDate(expense, monthKey),
-            today,
-          );
-          return status === 'cancelled' ? sum : sum + expense.amount;
-        }, 0);
-      const percent = (committed / (card.limit as number)) * 100;
-
-      return {
-        name: card.name,
-        percent: Number(percent.toFixed(1)),
-        display: Math.min(percent, 100),
-        committed,
-        limit: card.limit as number,
-        fill: commitmentColor(percent),
-      };
-    });
+  const data = buildCardCommitmentData(
+    cards,
+    expenses,
+    settlements,
+    monthKey,
+    today,
+  ).map((item) => ({ ...item, fill: commitmentColor(item.percent) }));
 
   if (data.length === 0) {
     return (
@@ -97,11 +71,10 @@ export function CardCommitmentChart() {
     );
   }
 
-  const average =
-    data.reduce((sum, item) => sum + item.percent, 0) / data.length;
+  const weightedPercentage = getWeightedCardCommitmentPercentage(data);
 
   return (
-    <div className='flex h-72 flex-col items-center justify-center gap-4'>
+    <div className='flex h-72 min-w-0 flex-col items-center justify-center gap-4'>
       <div className='relative h-48 w-full'>
         <ResponsiveContainer width='100%' height='100%'>
           <RadialBarChart
@@ -120,14 +93,15 @@ export function CardCommitmentChart() {
               cornerRadius={6}
             >
               {data.map((entry) => (
-                <Cell key={entry.name} fill={entry.fill} />
+                <Cell key={entry.id} fill={entry.fill} />
               ))}
             </RadialBar>
             <Tooltip
               contentStyle={{
-                background: '#111',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--popover)',
+                border: '1px solid var(--border)',
                 borderRadius: 12,
+                color: 'var(--popover-foreground)',
               }}
               formatter={(_value, _name, item) => {
                 const payload = item?.payload as
@@ -149,27 +123,29 @@ export function CardCommitmentChart() {
           </RadialBarChart>
         </ResponsiveContainer>
         <div className='pointer-events-none absolute inset-0 flex flex-col items-center justify-center'>
-          <span className='text-xs text-muted-foreground'>Média</span>
+          <span className='text-xs text-muted-foreground'>Comprometimento</span>
           <span className='text-sm font-semibold'>
-            {formatPercent(average / 100)}
+            {formatPercent(weightedPercentage / 100)}
           </span>
         </div>
       </div>
 
-      <div className='w-full space-y-2'>
+      <div className='max-h-24 w-full space-y-2 overflow-y-auto pr-1'>
         {data.map((item) => (
           <div
-            key={item.name}
-            className='flex items-center justify-between text-sm'
+            key={item.id}
+            className='flex min-w-0 items-center justify-between gap-3 text-sm'
           >
-            <div className='flex items-center gap-2'>
+            <div className='flex min-w-0 items-center gap-2'>
               <span
                 className='size-2.5 rounded-sm'
                 style={{ backgroundColor: item.fill }}
               />
-              <span className='text-muted-foreground'>{item.name}</span>
+              <span className='min-w-0 truncate text-muted-foreground'>
+                {item.name}
+              </span>
             </div>
-            <span className='font-medium'>
+            <span className='shrink-0 font-medium'>
               {formatPercent(item.percent / 100)}
             </span>
           </div>

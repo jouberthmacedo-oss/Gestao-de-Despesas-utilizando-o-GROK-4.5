@@ -26,10 +26,10 @@ Checklist vivo das features. Agents devem **sempre** ler este arquivo e seguir a
 
 ### Schema e banco
 
-- [x] **Prisma schema** — Criar `backend/prisma/schema.prisma` com models `User`, `Card`, `Expense`, `Entry` + `DATABASE_URL` no `backend/.env.example`. PostgreSQL; IDs `cuid()`; timestamps; relações com `userId`.
+- [x] **Prisma schema** — `backend/prisma/schema.prisma` com models `User`, `Card`, `Expense`, `Entry` + `DATABASE_URL` no `backend/.env.example`. PostgreSQL; IDs `uuid()`; timestamps; relações com `userId`.
 
   Detalhe dos models:
-  - **User**: `id`, `name`, `email` (unique), `passwordHash`, `salary`, `notes?`, relations
+  - **User**: `id`, `name`, `email` (unique), `passwordHash`, `notes?`, relations
   - **Card**: `id`, `userId`, `name`, `limit?`, `closingDay?`, `dueDay?`
   - **Expense**: `id`, `userId`, `cardId?`, `name`, `amount`, `category` (assinatura\|parcela\|divida\|outro), `frequency` (mensal), `dueDay?`, `notes?`
   - **Entry**: `id`, `userId`, `name`, `amount`, `type` (salario\|freelance\|outro), `frequency` (mensal\|unica), `date?`
@@ -58,6 +58,14 @@ Checklist vivo das features. Agents devem **sempre** ler este arquivo e seguir a
 - [x] **Financeiro: status de liquidação** — estados por ocorrência mensal/parcela com timestamps derivados.
 - [x] **Financeiro: orçamentos mensais** — limite por categoria, uso planejado/pago e períodos sem sobreposição.
 - [x] **Financeiro: metas de economia** — contribuições auditáveis, conclusão, edição e arquivamento.
-- [ ] API CRUD Express + Prisma (`User`, `Card`, `Expense`, `Entry`)
-- [ ] Frontend: trocar Zustand/localStorage pela API
+- [x] ~~API CRUD Express + Prisma para cartões, despesas e entradas~~ — `GET`, `POST`, `PATCH` e `DELETE`; autenticação obrigatória, isolamento por `userId`, validação de payload, vínculo de cartão por proprietário e serialização de valores `Decimal`.
+- [x] **Frontend: clientes de API e hooks preparados** — clientes e hooks React Query para cartões, despesas e entradas foram criados usando o cliente autenticado existente. Ainda não estão conectados às páginas.
+- [x] **Dashboard: comprometimento dos cartões** — gráfico radial por cartão usando despesas ativas, liquidações e limites do estado financeiro atual.
+- [x] **Segurança: isolamento do financeiro local por usuário** — persistência Zustand com chaves derivadas de `user.id`, descarregamento no logout e importação legada explícita.
+- [x] **Segurança: cache React Query por usuário** — hooks preparados com chaves autenticadas e limpeza no logout/troca de conta.
+- [x] **API: validação de dinheiro e PATCH** — limites de `Decimal(12,2)` e rejeição de campos desconhecidos nos três recursos.
+- [x] **CI: integração CRUD PostgreSQL** — serviço descartável com health check, migrations e teste habilitado.
+- [x] **Dashboard: correções do gráfico de comprometimento** — chaves estáveis, percentual ponderado, overflow e tokens de tema.
+- [ ] **Frontend: trocar Zustand/localStorage pela API** — migrar as telas e o estado financeiro sem perda de dados, mantendo compatibilidade com a persistência versão 4 e isolando os dados por usuário.
+- [ ] **Perfil do usuário na API** — definir e implementar atualização persistente de nome/notas e demais campos de perfil além dos endpoints de autenticação.
 - [ ] Seed / histórico mensal no DB (gráficos do dashboard)

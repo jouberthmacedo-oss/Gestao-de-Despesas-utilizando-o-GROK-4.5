@@ -1,6 +1,7 @@
 import { type Card, type Entry, type Expense, Prisma } from '@prisma/client';
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_DECIMAL_12_2 = new Prisma.Decimal('9999999999.99');
 
 export const EXPENSE_CATEGORIES = [
   'assinatura',
@@ -22,6 +23,13 @@ export function hasOwn(value: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
+export function hasOnlyAllowedFields(
+  value: Record<string, unknown>,
+  allowedFields: readonly string[],
+) {
+  return Object.keys(value).every((key) => allowedFields.includes(key));
+}
+
 export function parseName(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return undefined;
   return value.trim();
@@ -40,7 +48,9 @@ export function parseMoney(value: unknown) {
   if (!raw || !/^\d+(?:\.\d{1,2})?$/.test(raw)) return undefined;
 
   const decimal = new Prisma.Decimal(raw);
-  return decimal.gt(0) ? decimal.toFixed(2) : undefined;
+  return decimal.gt(0) && decimal.lte(MAX_DECIMAL_12_2)
+    ? decimal.toFixed(2)
+    : undefined;
 }
 
 export function parseNullableMoney(value: unknown) {

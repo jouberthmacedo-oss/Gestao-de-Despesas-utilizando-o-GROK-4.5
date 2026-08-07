@@ -7,28 +7,37 @@ import {
   listEntries,
   updateEntry,
 } from '@/lib/entries-api';
-
-export const ENTRIES_QUERY_KEY = ['entries'] as const;
+import { getFinanceQueryKey } from '@/lib/finance-query-keys';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function useEntries() {
+  const userId = useAuthStore((state) => state.user?.id);
+  const queryKey = getFinanceQueryKey(userId, 'entries');
+
   return useQuery({
-    queryKey: ENTRIES_QUERY_KEY,
+    queryKey,
     queryFn: listEntries,
+    enabled: Boolean(userId),
   });
 }
 
 export function useCreateEntry() {
+  const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: EntryPayload) => createEntry(payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+      if (userId)
+        void queryClient.invalidateQueries({
+          queryKey: getFinanceQueryKey(userId, 'entries'),
+        });
     },
   });
 }
 
 export function useUpdateEntry() {
+  const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -40,18 +49,25 @@ export function useUpdateEntry() {
       payload: Partial<EntryPayload>;
     }) => updateEntry(id, payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+      if (userId)
+        void queryClient.invalidateQueries({
+          queryKey: getFinanceQueryKey(userId, 'entries'),
+        });
     },
   });
 }
 
 export function useDeleteEntry() {
+  const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => deleteEntry(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+      if (userId)
+        void queryClient.invalidateQueries({
+          queryKey: getFinanceQueryKey(userId, 'entries'),
+        });
     },
   });
 }

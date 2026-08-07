@@ -7,28 +7,37 @@ import {
   listExpenses,
   updateExpense,
 } from '@/lib/expenses-api';
-
-export const EXPENSES_QUERY_KEY = ['expenses'] as const;
+import { getFinanceQueryKey } from '@/lib/finance-query-keys';
+import { useAuthStore } from '@/stores/auth-store';
 
 export function useExpenses() {
+  const userId = useAuthStore((state) => state.user?.id);
+  const queryKey = getFinanceQueryKey(userId, 'expenses');
+
   return useQuery({
-    queryKey: EXPENSES_QUERY_KEY,
+    queryKey,
     queryFn: listExpenses,
+    enabled: Boolean(userId),
   });
 }
 
 export function useCreateExpense() {
+  const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: ExpensePayload) => createExpense(payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
+      if (userId)
+        void queryClient.invalidateQueries({
+          queryKey: getFinanceQueryKey(userId, 'expenses'),
+        });
     },
   });
 }
 
 export function useUpdateExpense() {
+  const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -40,18 +49,25 @@ export function useUpdateExpense() {
       payload: Partial<ExpensePayload>;
     }) => updateExpense(id, payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
+      if (userId)
+        void queryClient.invalidateQueries({
+          queryKey: getFinanceQueryKey(userId, 'expenses'),
+        });
     },
   });
 }
 
 export function useDeleteExpense() {
+  const userId = useAuthStore((state) => state.user?.id);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => deleteExpense(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: EXPENSES_QUERY_KEY });
+      if (userId)
+        void queryClient.invalidateQueries({
+          queryKey: getFinanceQueryKey(userId, 'expenses'),
+        });
     },
   });
 }

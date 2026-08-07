@@ -31,6 +31,20 @@ jobs:
 
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: demanage
+          POSTGRES_PASSWORD: demanage
+          POSTGRES_DB: demanage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U demanage -d demanage"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -40,6 +54,7 @@ jobs:
       APP_URL: http://localhost:5180
       DATABASE_URL: postgresql://demanage:demanage@localhost:5432/demanage?schema=public
       JWT_SECRET: ci-only-placeholder-secret
+      DEMANAGE_CRUD_TEST: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -53,6 +68,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma generate
       - run: pnpm prisma validate
+      - run: pnpm prisma migrate deploy
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm test
